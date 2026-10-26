@@ -1,0 +1,552 @@
+{
+  "schema_version": 1,
+  "title": "AI-300: Optimizing Generative AI Systems and Model Performance",
+  "level": "Intermediate",
+  "repository": "rupeshtiwari/pluralsight-ai-300-optimizing-generative-systems-model-performance",
+  "starter_branch": "main",
+  "objectives": [
+    {
+      "id": "TO1",
+      "text": "Optimize retrieval-augmented generation (RAG) performance and accuracy",
+      "children": [
+        {
+          "id": "EO1a",
+          "text": "Optimize retrieval performance by tuning similarity thresholds, chunk sizes, and retrieval strategies"
+        },
+        {
+          "id": "EO1b",
+          "text": "Select and fine-tune embedding models for domain-specific use cases and accuracy improvements"
+        },
+        {
+          "id": "EO1c",
+          "text": "Implement and optimize hybrid search approaches combining semantic and keyword-based retrieval"
+        },
+        {
+          "id": "EO1d",
+          "text": "Evaluate and improve RAG system performance by using relevance metrics and A/B testing frameworks"
+        }
+      ]
+    },
+    {
+      "id": "TO2",
+      "text": "Implement advanced fine-tuning and model customization",
+      "children": [
+        {
+          "id": "EO2a",
+          "text": "Design and implement advanced fine-tuning methods"
+        },
+        {
+          "id": "EO2b",
+          "text": "Create and manage synthetic data for fine-tuning"
+        },
+        {
+          "id": "EO2c",
+          "text": "Monitor and optimize fine-tuned model performance"
+        },
+        {
+          "id": "EO2d",
+          "text": "Manage a fine-tuned model from development through production deployment"
+        }
+      ]
+    }
+  ],
+  "demos": [
+    {
+      "stem": "m1-demo1",
+      "module": 1,
+      "clip": 2,
+      "title": "Demo: Tune chunks and similarity cutoffs in Azure AI Search",
+      "folder": "module1/m1-c2",
+      "before_branch": null,
+      "start_branch": "m1-demo1-after",
+      "after_branch": "m1-demo1-after",
+      "objectives": [
+        "TO1",
+        "EO1a"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "title": "Query one Azure AI Search Free-tier index with a chunk_size pre-filter to select 64-, 128-, or 192-token chunks of the same corpus, encoded with all-MiniLM-L6-v2."
+        },
+        {
+          "n": 2,
+          "title": "Vary vector candidate depth and apply a cosine cutoff in the Python client after converting a pure single-vector search score; inspect retained and rejected results."
+        },
+        {
+          "n": 3,
+          "title": "Compare Recall@k, boundary failures, and latency while changing one control at a time; retain the configuration that supplies useful evidence."
+        }
+      ],
+      "expected_evidence": [
+        "Chunk-size-controlled Azure search responses",
+        "Retained and rejected single-vector candidates with converted cosine values",
+        "Recall@k, boundary-failure and latency comparison"
+      ],
+      "authored_artifacts": [],
+      "prerequisite_demos": [],
+      "commands": {
+        "lab-up": "module1/m1-c2/scripts/lab-up.sh",
+        "lab-step": "module1/m1-c2/scripts/lab-step.sh",
+        "preflight_check": "module1/m1-c2/scripts/preflight_check.sh",
+        "lab-down": "module1/m1-c2/scripts/lab-down.sh"
+      },
+      "status": "NOT IMPLEMENTED",
+      "branch_semantics": "Operational reference placeholder; no completed runnable state exists yet.",
+      "prerequisite_status": "Exact dependencies pending implementation; this empty authored-file dependency list does not establish an independent Azure start state."
+    },
+    {
+      "stem": "m1-demo2",
+      "module": 1,
+      "clip": 3,
+      "title": "Demo: Run hybrid search and semantic reranking in Azure",
+      "folder": "module1/m1-c3",
+      "before_branch": null,
+      "start_branch": "m1-demo2-after",
+      "after_branch": "m1-demo2-after",
+      "objectives": [
+        "TO1",
+        "EO1c"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "title": "Send text and vector queries together to Azure AI Search; compare its reciprocal rank fusion results with separate keyword and vector searches."
+        },
+        {
+          "n": 2,
+          "title": "Vary vector weight and candidate depth, then enable semantic reranking with 50 vector candidates and inspect search and reranker scores separately."
+        },
+        {
+          "n": 3,
+          "title": "Compare exact identifiers and paraphrased questions on the same validation set; keep relevance gains without hiding query-type regressions."
+        }
+      ],
+      "expected_evidence": [
+        "Keyword, vector and reciprocal-rank-fused result comparisons",
+        "Vector-weight, candidate-depth and semantic reranker response fields",
+        "Exact-identifier and paraphrase validation results"
+      ],
+      "authored_artifacts": [],
+      "prerequisite_demos": [],
+      "commands": {
+        "lab-up": "module1/m1-c3/scripts/lab-up.sh",
+        "lab-step": "module1/m1-c3/scripts/lab-step.sh",
+        "preflight_check": "module1/m1-c3/scripts/preflight_check.sh",
+        "lab-down": "module1/m1-c3/scripts/lab-down.sh"
+      },
+      "status": "NOT IMPLEMENTED",
+      "branch_semantics": "Operational reference placeholder; no completed runnable state exists yet.",
+      "prerequisite_status": "Exact dependencies pending implementation; this empty authored-file dependency list does not establish an independent Azure start state."
+    },
+    {
+      "stem": "m1-demo3",
+      "module": 1,
+      "clip": 5,
+      "title": "Demo: Evaluate RAG variants with Azure services",
+      "folder": "module1/m1-c5",
+      "before_branch": null,
+      "start_branch": "m1-demo3-after",
+      "after_branch": "m1-demo3-after",
+      "objectives": [
+        "TO1",
+        "EO1d"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "title": "Run the Python experiment runner against two configurations of the same Azure AI Search index and the same gpt-5.6-luna deployment in Microsoft Foundry, holding the prompt and generation settings fixed."
+        },
+        {
+          "n": 2,
+          "title": "Compare Recall@k, nDCG@k, labeled answer support, and latency using real retrieval and generated responses; inspect a concrete regression."
+        },
+        {
+          "n": 3,
+          "title": "Assign synthetic sessions consistently to A or B, retain exposure and outcome logs in Azure ML with MLflow, and analyze the declared primary metric and stop rule."
+        }
+      ],
+      "expected_evidence": [
+        "Assignments to fixed retrieval variants and matching Foundry generation settings",
+        "Recall@k, nDCG@k, labeled support, latency and concrete regression examples",
+        "MLflow exposure/outcome logs, primary metric and stop-rule analysis"
+      ],
+      "authored_artifacts": [],
+      "prerequisite_demos": [],
+      "commands": {
+        "lab-up": "module1/m1-c5/scripts/lab-up.sh",
+        "lab-step": "module1/m1-c5/scripts/lab-step.sh",
+        "preflight_check": "module1/m1-c5/scripts/preflight_check.sh",
+        "lab-down": "module1/m1-c5/scripts/lab-down.sh"
+      },
+      "status": "NOT IMPLEMENTED",
+      "branch_semantics": "Operational reference placeholder; no completed runnable state exists yet.",
+      "prerequisite_status": "Exact dependencies pending implementation; this empty authored-file dependency list does not establish an independent Azure start state."
+    },
+    {
+      "stem": "m2-demo1",
+      "module": 2,
+      "clip": 2,
+      "title": "Demo: Fine-tune domain embeddings in Azure ML",
+      "folder": "module2/m2-c2",
+      "before_branch": null,
+      "start_branch": "m2-demo1-after",
+      "after_branch": "m2-demo1-after",
+      "objectives": [
+        "TO1",
+        "EO1b"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "title": "Configure a Sentence Transformers contrastive training script with reviewed positive pairs and hard negatives, then submit an Azure ML CPU command job."
+        },
+        {
+          "n": 2,
+          "title": "Inspect a completed job with matching code, environment, and data versions; select its checkpoint from validation metrics and retain the job output."
+        },
+        {
+          "n": 3,
+          "title": "Encode corpus and queries with the selected checkpoint; populate its dedicated vector field in the same index, filter to the same chunk_size, and compare held-out relevance with the baseline fields."
+        }
+      ],
+      "expected_evidence": [
+        "Azure ML CPU job configuration with reviewed positive pairs and hard negatives",
+        "Matching completed training job, input versions, validation metrics and selected checkpoint",
+        "Checkpoint-aligned corpus/query vectors and held-out baseline comparison"
+      ],
+      "authored_artifacts": [],
+      "prerequisite_demos": [],
+      "commands": {
+        "lab-up": "module2/m2-c2/scripts/lab-up.sh",
+        "lab-step": "module2/m2-c2/scripts/lab-step.sh",
+        "preflight_check": "module2/m2-c2/scripts/preflight_check.sh",
+        "lab-down": "module2/m2-c2/scripts/lab-down.sh"
+      },
+      "status": "NOT IMPLEMENTED",
+      "branch_semantics": "Operational reference placeholder; no completed runnable state exists yet.",
+      "prerequisite_status": "Exact dependencies pending implementation; this empty authored-file dependency list does not establish an independent Azure start state."
+    },
+    {
+      "stem": "m2-demo2",
+      "module": 2,
+      "clip": 4,
+      "title": "Demo: Generate and version synthetic data with Foundry",
+      "folder": "module2/m2-c4",
+      "before_branch": null,
+      "start_branch": "m2-demo2-after",
+      "after_branch": "m2-demo2-after",
+      "objectives": [
+        "TO2",
+        "EO2b"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "title": "Call the gpt-5.6-luna deployment in Microsoft Foundry to generate support-response examples from training-source documents, retaining source, prompt, and generator versions."
+        },
+        {
+          "n": 2,
+          "title": "Check JSONL structure, duplicate prompts, source references, and split leakage with Python; manually accept or reject examples by checking their claims against the source."
+        },
+        {
+          "n": 3,
+          "title": "Register accepted examples, rejection reasons, hashes, and separate validation and test files as versioned Azure ML data assets."
+        }
+      ],
+      "expected_evidence": [
+        "Foundry examples with source, prompt and generator identities",
+        "JSONL, duplicate, source-reference and split-leakage checks with manual acceptance/rejection",
+        "Versioned Azure ML accepted-data, rejection, hash, validation and test assets"
+      ],
+      "authored_artifacts": [],
+      "prerequisite_demos": [],
+      "commands": {
+        "lab-up": "module2/m2-c4/scripts/lab-up.sh",
+        "lab-step": "module2/m2-c4/scripts/lab-step.sh",
+        "preflight_check": "module2/m2-c4/scripts/preflight_check.sh",
+        "lab-down": "module2/m2-c4/scripts/lab-down.sh"
+      },
+      "status": "NOT IMPLEMENTED",
+      "branch_semantics": "Operational reference placeholder; no completed runnable state exists yet.",
+      "prerequisite_status": "Exact dependencies pending implementation; this empty authored-file dependency list does not establish an independent Azure start state."
+    },
+    {
+      "stem": "m2-demo3",
+      "module": 2,
+      "clip": 5,
+      "title": "Demo: Train a LoRA adapter in Azure ML",
+      "folder": "module2/m2-c5",
+      "before_branch": null,
+      "start_branch": "m2-demo3-after",
+      "after_branch": "m2-demo3-after",
+      "objectives": [
+        "TO2",
+        "EO2a",
+        "EO2c"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "title": "Configure Qwen3-0.6B supervised training with Transformers and PEFT, choosing LoRA rank, target layers, learning rate, batch size, and response-only loss."
+        },
+        {
+          "n": 2,
+          "title": "Submit the CPU command job and inspect a completed run with matching inputs; track training and validation loss in Azure ML through MLflow."
+        },
+        {
+          "n": 3,
+          "title": "Diagnose divergence between training and validation loss, then inspect base and adapted validation responses for memorization and task errors before further tuning."
+        }
+      ],
+      "expected_evidence": [
+        "Qwen3 supervised LoRA configuration including response-only loss",
+        "Genuine Azure ML completed CPU run and MLflow training/validation loss",
+        "Base/adapted validation responses and diagnosed memorization or task errors"
+      ],
+      "authored_artifacts": [],
+      "prerequisite_demos": [],
+      "commands": {
+        "lab-up": "module2/m2-c5/scripts/lab-up.sh",
+        "lab-step": "module2/m2-c5/scripts/lab-step.sh",
+        "preflight_check": "module2/m2-c5/scripts/preflight_check.sh",
+        "lab-down": "module2/m2-c5/scripts/lab-down.sh"
+      },
+      "status": "NOT IMPLEMENTED",
+      "branch_semantics": "Operational reference placeholder; no completed runnable state exists yet.",
+      "prerequisite_status": "Exact dependencies pending implementation; this empty authored-file dependency list does not establish an independent Azure start state."
+    },
+    {
+      "stem": "m2-demo4",
+      "module": 2,
+      "clip": 6,
+      "title": "Demo: Tune LoRA rank and select a checkpoint in Azure ML",
+      "folder": "module2/m2-c6",
+      "before_branch": null,
+      "start_branch": "m2-demo4-after",
+      "after_branch": "m2-demo4-after",
+      "objectives": [
+        "TO2",
+        "EO2a",
+        "EO2c"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "title": "Configure a second CPU command job with a different LoRA rank and learning rate; keep the base model, data splits, seed, target layers, and training budget fixed."
+        },
+        {
+          "n": 2,
+          "title": "Compare both genuine completed runs in MLflow using validation loss, elapsed time, and task outputs; interpret the combined configuration change rather than attributing the result to rank alone."
+        },
+        {
+          "n": 3,
+          "title": "Select a checkpoint using validation quality and CPU cost, then save its adapter with the exact base-model revision, tokenizer, data, and environment versions."
+        }
+      ],
+      "expected_evidence": [
+        "Second CPU training configuration with declared controlled factors",
+        "Genuine completed-run comparison including validation loss, elapsed time and task outputs",
+        "Selected adapter/checkpoint with exact base revision, tokenizer, data and environment identities"
+      ],
+      "authored_artifacts": [],
+      "prerequisite_demos": [],
+      "commands": {
+        "lab-up": "module2/m2-c6/scripts/lab-up.sh",
+        "lab-step": "module2/m2-c6/scripts/lab-step.sh",
+        "preflight_check": "module2/m2-c6/scripts/preflight_check.sh",
+        "lab-down": "module2/m2-c6/scripts/lab-down.sh"
+      },
+      "status": "NOT IMPLEMENTED",
+      "branch_semantics": "Operational reference placeholder; no completed runnable state exists yet.",
+      "prerequisite_status": "Exact dependencies pending implementation; this empty authored-file dependency list does not establish an independent Azure start state."
+    },
+    {
+      "stem": "m3-demo1",
+      "module": 3,
+      "clip": 2,
+      "title": "Demo: Evaluate fine-tuned candidates in Azure ML",
+      "folder": "module3/m3-c2",
+      "before_branch": null,
+      "start_branch": "m3-demo1-after",
+      "after_branch": "m3-demo1-after",
+      "objectives": [
+        "TO2",
+        "EO2c"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "title": "Submit an Azure ML evaluation job for the base model and selected adapters using the same domain and general-capability validation questions and generation settings."
+        },
+        {
+          "n": 2,
+          "title": "Inspect the completed job in MLflow, comparing task correctness, answer support, and schema validity by query type and reading concrete failures."
+        },
+        {
+          "n": 3,
+          "title": "Select the candidate against the validation gates and retain the job, dataset, configuration, and per-example evidence."
+        }
+      ],
+      "expected_evidence": [
+        "Base and adapter evaluation-job inputs and common generation settings",
+        "Completed MLflow evaluation and per-query-type correctness/support/schema failures",
+        "Validation-gate decision with job, dataset, configuration and per-example evidence"
+      ],
+      "authored_artifacts": [],
+      "prerequisite_demos": [],
+      "commands": {
+        "lab-up": "module3/m3-c2/scripts/lab-up.sh",
+        "lab-step": "module3/m3-c2/scripts/lab-step.sh",
+        "preflight_check": "module3/m3-c2/scripts/preflight_check.sh",
+        "lab-down": "module3/m3-c2/scripts/lab-down.sh"
+      },
+      "status": "NOT IMPLEMENTED",
+      "branch_semantics": "Operational reference placeholder; no completed runnable state exists yet.",
+      "prerequisite_status": "Exact dependencies pending implementation; this empty authored-file dependency list does not establish an independent Azure start state."
+    },
+    {
+      "stem": "m3-demo2",
+      "module": 3,
+      "clip": 3,
+      "title": "Demo: Deploy a versioned model to Azure ML",
+      "folder": "module3/m3-c3",
+      "before_branch": null,
+      "start_branch": "m3-demo2-after",
+      "after_branch": "m3-demo2-after",
+      "objectives": [
+        "TO2",
+        "EO2d"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "title": "Register a custom model asset containing the base-model revision, adapter, and tokenizer, linked to training data and validation evidence."
+        },
+        {
+          "n": 2,
+          "title": "Deploy the candidate with versioned scoring code and an Azure ML CPU inference environment to an existing managed online endpoint at zero traffic."
+        },
+        {
+          "n": 3,
+          "title": "Inspect the completed deployment and invoke it directly; verify the model identity and smoke-test responses while the baseline deployment continues serving."
+        }
+      ],
+      "expected_evidence": [
+        "Registered custom model identity linked to training and validation evidence",
+        "Candidate zero-traffic deployment with versioned scoring and CPU environment",
+        "Direct candidate invocation and identity/smoke-test responses while baseline serves"
+      ],
+      "authored_artifacts": [],
+      "prerequisite_demos": [],
+      "commands": {
+        "lab-up": "module3/m3-c3/scripts/lab-up.sh",
+        "lab-step": "module3/m3-c3/scripts/lab-step.sh",
+        "preflight_check": "module3/m3-c3/scripts/preflight_check.sh",
+        "lab-down": "module3/m3-c3/scripts/lab-down.sh"
+      },
+      "status": "NOT IMPLEMENTED",
+      "branch_semantics": "Operational reference placeholder; no completed runnable state exists yet.",
+      "prerequisite_status": "Exact dependencies pending implementation; this empty authored-file dependency list does not establish an independent Azure start state."
+    },
+    {
+      "stem": "m3-demo3",
+      "module": 3,
+      "clip": 4,
+      "title": "Demo: Optimize and test the Azure model endpoint",
+      "folder": "module3/m3-c4",
+      "before_branch": null,
+      "start_branch": "m3-demo3-after",
+      "after_branch": "m3-demo3-after",
+      "objectives": [
+        "TO2",
+        "EO2c",
+        "EO2d"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "title": "Benchmark the candidate deployment directly with a fixed validation workload; compare output-length limits using latency, output tokens, and answer quality."
+        },
+        {
+          "n": 2,
+          "title": "Freeze the selected model, environment, and request settings, then run the untouched domain and general-capability test set against that deployment."
+        },
+        {
+          "n": 3,
+          "title": "Retain the final test report and release configuration with the model version; reject a failed gate and require a new untouched test set after further tuning."
+        }
+      ],
+      "expected_evidence": [
+        "Fixed validation benchmark across output-length limits",
+        "Frozen candidate and inference settings with untouched final-test results",
+        "Retained release configuration/report and gate decision"
+      ],
+      "authored_artifacts": [],
+      "prerequisite_demos": [],
+      "commands": {
+        "lab-up": "module3/m3-c4/scripts/lab-up.sh",
+        "lab-step": "module3/m3-c4/scripts/lab-step.sh",
+        "preflight_check": "module3/m3-c4/scripts/preflight_check.sh",
+        "lab-down": "module3/m3-c4/scripts/lab-down.sh"
+      },
+      "status": "NOT IMPLEMENTED",
+      "branch_semantics": "Operational reference placeholder; no completed runnable state exists yet.",
+      "prerequisite_status": "Exact dependencies pending implementation; this empty authored-file dependency list does not establish an independent Azure start state."
+    },
+    {
+      "stem": "m3-demo4",
+      "module": 3,
+      "clip": 5,
+      "title": "Demo: Monitor Azure traffic and verify rollback",
+      "folder": "module3/m3-c5",
+      "before_branch": null,
+      "start_branch": "m3-demo4-after",
+      "after_branch": "m3-demo4-after",
+      "objectives": [
+        "TO2",
+        "EO2c",
+        "EO2d"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "title": "Configure an Azure Monitor alert on Request Latency P95; inspect latency by deployment, Requests Per Minute by deployment and status-code class, and each deployment’s CPU and memory utilization."
+        },
+        {
+          "n": 2,
+          "title": "Allocate 90 percent of managed endpoint traffic to the baseline and 10 percent to the candidate; send labeled test traffic and retain deployment identities in the evidence."
+        },
+        {
+          "n": 3,
+          "title": "Inspect a failed operational or labeled-quality gate and stop promotion; distinguish the test workload from real production-user outcomes."
+        },
+        {
+          "n": 4,
+          "title": "Restore 100 percent traffic to the baseline, then verify the routed model identity, responses, and recovered operational behavior."
+        }
+      ],
+      "expected_evidence": [
+        "Latency, request/status-class, CPU/memory metrics and Request Latency P95 alert",
+        "90/10 traffic configuration and labeled test responses with deployment identities",
+        "Failed operational or labeled-quality gate and stopped promotion",
+        "100/0 restored traffic with routed identity, response and recovery checks"
+      ],
+      "authored_artifacts": [],
+      "prerequisite_demos": [],
+      "commands": {
+        "lab-up": "module3/m3-c5/scripts/lab-up.sh",
+        "lab-step": "module3/m3-c5/scripts/lab-step.sh",
+        "preflight_check": "module3/m3-c5/scripts/preflight_check.sh",
+        "lab-down": "module3/m3-c5/scripts/lab-down.sh"
+      },
+      "status": "NOT IMPLEMENTED",
+      "branch_semantics": "Operational reference placeholder; no completed runnable state exists yet.",
+      "prerequisite_status": "Exact dependencies pending implementation; this empty authored-file dependency list does not establish an independent Azure start state."
+    }
+  ],
+  "status": "SCAFFOLD ONLY",
+  "command_status": "The listed paths are fail-closed scaffold entrypoints, not approved runnable lab commands.",
+  "dependency_status": "Runtime, data and model dependencies remain to be implemented and verified.",
+  "branch_status": "All demo references are placeholders until implementation and real Azure evidence are complete."
+}

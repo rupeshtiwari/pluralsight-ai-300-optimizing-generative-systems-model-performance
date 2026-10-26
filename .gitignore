@@ -1,0 +1,8 @@
+# Local runtime output
+logs/
+*.log
+results-*/
+.env.local
+__pycache__/
+*.pyc
+.DS_Store
