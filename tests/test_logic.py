@@ -156,6 +156,58 @@ class ReviewRegressionTests(unittest.TestCase):
 
 
 class AcceptanceRegressionTests(unittest.TestCase):
+    def test_canary_frozen_baseline_identity_and_safe_recovery(self):
+        """Offline transports: same-name replacement must never verify rollback."""
+        from ai300 import demos
+        frozen={'deployment_snapshot':{'deployment':'candidate','model_id':'OFFLINE-candidate-v1'},'baseline_deployment_snapshot':{'deployment':'baseline','model_id':'OFFLINE-baseline-v1'},'model_identity':{'version':'OFFLINE-candidate-v1'},'baseline_model_identity':{'version':'OFFLINE-baseline-v1'},'max_new_tokens':64}
+        for scenario in ('snapshot_changed','precheck_identity_changed','routed_identity_changed','recovery_identity_changed','unchanged'):
+            with self.subTest(scenario=scenario), tempfile.TemporaryDirectory() as temp:
+                class RunDouble:
+                    path=Path(temp); config={'baseline_deployment':'baseline','candidate_deployment':'candidate','subscription_id':'OFFLINE','resource_group':'OFFLINE','workspace':'OFFLINE','endpoint':'ai300-offline'}
+                    spec={**read(core.ROOT/'configs/m3-demo4.json'),'requests':2}
+                    def __init__(self):
+                        self.state={'canary_started_at':'OFFLINE','baseline_safety_restored':False}; self.records=[]
+                    def dependency(self,*args): return {'release_decision':'PASS','frozen_release':copy.deepcopy(frozen)}
+                    def save(self): write(self.path/'state.json',self.state)
+                    def raw(self,name,value):
+                        self.records.append((name,value)); write(self.path/f'{len(self.records)}-{name}.json',value)
+                run=RunDouble(); traffic_calls=[]
+                class AzureDouble:
+                    def __init__(self,run): self.run=run; self.c=run.config; self.calls=0
+                    def invoke(self,payload,deployment=None):
+                        self.calls+=1
+                        name='candidate' if scenario=='routed_identity_changed' and self.calls==2 else 'baseline'
+                        identity=frozen['model_identity'] if name=='candidate' else frozen['baseline_model_identity']
+                        if (scenario=='precheck_identity_changed' or (scenario=='routed_identity_changed' and self.calls==3) or (scenario=='recovery_identity_changed' and self.calls>1)):
+                            identity={'version':'OFFLINE-same-name-replacement'}
+                        result={'deployment':name,'model_identity':identity,'response':{'answer':'OFFLINE double','source_ids':[]},'output_tokens':2}
+                        run.raw('endpoint',{'request':payload,'response':result,'offline_test_double':True}); return result,1
+                def snapshot(azure,name):
+                    value=copy.deepcopy(frozen['baseline_deployment_snapshot'] if name=='baseline' else frozen['deployment_snapshot'])
+                    if scenario=='snapshot_changed' and name=='baseline': value['model_id']='OFFLINE-same-name-replacement'
+                    return value
+                def set_traffic(azure,baseline,candidate):
+                    traffic_calls.append((baseline,candidate)); run.state['baseline_safety_restored']=baseline==100 and candidate==0; run.save()
+                    return {'baseline':baseline,'candidate':candidate}
+                step=4 if scenario in ('recovery_identity_changed','unchanged') else 2
+                with patch.object(demos,'Azure',AzureDouble), patch.object(demos,'deployment_snapshot',side_effect=snapshot), patch.object(demos,'course_endpoint'), patch.object(demos,'set_traffic',side_effect=set_traffic), patch.object(demos,'monitor_snapshot',return_value={'offline_test_double':True}) as monitor, patch.object(demos,'require_monitor_coverage'), patch.object(demos,'metric_values',return_value=[1]):
+                    if scenario=='unchanged':
+                        report=demos.canary_rollback(run,step)
+                        self.assertTrue(report['rollback_verified'])
+                        self.assertTrue(all(identity==frozen['baseline_model_identity'] for identity in report['routed_model_identities']))
+                        monitor.assert_called_once()
+                    else:
+                        with self.assertRaises(Hold): demos.canary_rollback(run,step)
+                        monitor.assert_not_called()
+                self.assertEqual(traffic_calls,[(90,10),(100,0)] if scenario=='routed_identity_changed' else [(100,0)])
+                self.assertTrue(read(run.path/'state.json')['baseline_safety_restored'])
+                evidence=[read(path) for path in run.path.glob('*.json')]
+                self.assertTrue(evidence)
+                self.assertFalse(any(item.get('rollback_verified') for item in evidence))
+                if scenario in ('snapshot_changed','precheck_identity_changed'):
+                    checks=[value for name,value in run.records if name.startswith('canary-baseline-')]
+                    self.assertFalse(checks[-1]['matches'])
+                    self.assertTrue(any(name=='canary-step-safety-restore' for name,_ in run.records))
     def test_controlled_rollback_requires_isolated_endpoint(self):
         from types import SimpleNamespace
         from ai300.azure import require_course_endpoint

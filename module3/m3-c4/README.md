@@ -95,7 +95,7 @@ After step 2, complete `final-test-review.jsonl` against the exact supplied cont
 
 **Interpret Results:** Freeze model, environment, scorer hash, generation settings and final-test hash before the first test call. Opening the test consumes it even if a later request fails.
 
-**If it fails:** Read the retained error and raw response. Fix missing prerequisites or wait for the named asynchronous operation; repeat only the failed step. Never replace output with a fixture or expected success. A quality rejection requires the corrective action in the report.
+**If it fails:** Retain the failure and raw responses, investigate the cause, and inspect the consumed-test ledger. Never retry a consumed test set or delete/reset its ledger, even when a request failed. After consumption, continue only with a new untouched source-group test set and a new run after correcting the cause. If the failure occurred before the ledger was created, fix the prerequisite before retrying. Never replace output with a fixture or expected success.
 
 <a id="step-3"></a>
 

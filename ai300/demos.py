@@ -325,7 +325,14 @@ def set_traffic(a,baseline,candidate):
 def _canary_step(run,n):
     a=Azure(run); release=run.dependency('m3-demo3',3); require(release['release_decision']=='PASS','Final-test release gate failed; canary is blocked.')
     require(deployment_snapshot(a,run.config['candidate_deployment'])==release['frozen_release']['deployment_snapshot'],'Candidate deployment changed after frozen final test.')
+    frozen=release['frozen_release']; baseline_snapshot=deployment_snapshot(a,run.config['baseline_deployment'])
+    run.raw('canary-baseline-snapshot-check',{'expected':frozen['baseline_deployment_snapshot'],'observed':baseline_snapshot,'matches':baseline_snapshot==frozen['baseline_deployment_snapshot']})
+    require(baseline_snapshot==frozen['baseline_deployment_snapshot'],'Baseline deployment changed after frozen final test; routing safety restoration does not verify recovery.')
     course_endpoint(a)
+    baseline_response,_=a.invoke(endpoint_payload(validation(domain=False)[0],frozen['max_new_tokens']),run.config['baseline_deployment'])
+    baseline_matches=baseline_response['deployment']==run.config['baseline_deployment'] and baseline_response['model_identity']==frozen['baseline_model_identity']
+    run.raw('canary-baseline-model-check',{'expected_deployment':run.config['baseline_deployment'],'expected_identity':frozen['baseline_model_identity'],'observed_response':baseline_response,'matches':baseline_matches})
+    require(baseline_matches,'Baseline response identity differs from the frozen release; routing safety restoration does not verify recovery.')
     resource=endpoint_resource(run)
     test=run.spec['rollback_test']; candidate_threshold=test['candidate_p95_threshold_ms'] if test['enabled'] else run.spec['latency_budget_ms']
     trigger={'candidate_p95_threshold_ms':candidate_threshold,'baseline_recovery_budget_ms':run.spec['latency_budget_ms'],'label':test['label'] if test['enabled'] else 'NORMAL_OPERATIONAL_GATE','test_only':test['enabled'],'declared_before_traffic':True}
@@ -335,7 +342,7 @@ def _canary_step(run,n):
         a.arm('PUT',alert,spec,version='2018-03-01'); actual=a.arm('GET',alert,version='2018-03-01'); run.state['resources']['alert_id']=alert; run.save()
         # Generate a bounded baseline/direct-candidate validation workload before opening metrics.
         responses=[]
-        for deployment in (a.c['baseline_deployment'],a.c['candidate_deployment']): responses.append(endpoint_workload(a,validation(domain=False),release['frozen_release']['max_new_tokens'],deployment))
+        for deployment,identity in ((a.c['baseline_deployment'],frozen['baseline_model_identity']),(a.c['candidate_deployment'],frozen['model_identity'])): responses.append(endpoint_workload(a,validation(domain=False),frozen['max_new_tokens'],deployment,identity))
         snapshot=monitor_snapshot(a)
         return {'predeclared_trigger':trigger,'alert_id':alert,'alert':actual,'metric_snapshot':snapshot,'warmup_workloads':responses,'telemetry_status':'AVAILABLE' if metric_values(snapshot,'RequestLatency_P95') else 'PENDING_INGESTION','next_action':'Inspect genuine timestamped metrics; do not substitute local latency for Azure Monitor.'}
     if n==2:
@@ -349,6 +356,7 @@ def _canary_step(run,n):
             observed={r['deployment'] for r in rows}
             require({a.c['baseline_deployment'],a.c['candidate_deployment']}<=observed,'Small routed sample did not observe both deployments; rollback is required before another bounded sample.')
             require(all(r['model_identity']==release['frozen_release']['model_identity'] for r in rows if r['deployment']==a.c['candidate_deployment']),'Canary candidate identity mismatch.')
+            require(all(r['model_identity']==frozen['baseline_model_identity'] for r in rows if r['deployment']==a.c['baseline_deployment']),'Canary baseline identity mismatch.')
             run.state['canary_finished_at']=now(); run.save()
             review_path,_=prepare_manual_review(run,'canary',rows)
             return {'manual_review_path':str(review_path),'traffic':traffic,'rows':rows,'by_deployment':{d:summarize([r for r in rows if r['deployment']==d]) for d in observed},'population':'labeled synthetic test workload, not real production users','canary_started_at':run.state['canary_started_at']}
@@ -375,7 +383,7 @@ def _canary_step(run,n):
             set_traffic(a,100,0); raise Hold('No failed operational or labeled-quality gate observed. Baseline restored; rollback trigger proof remains NOT OBSERVED. Do not invent a failure or promote.')
         return {'predeclared_trigger':run.previous(1)['predeclared_trigger'],'observed_candidate_p95_ms':metric_values(snapshot,'RequestLatency_P95',deployment=a.c['candidate_deployment'],resource=resource),'promotion':'STOPPED','failed_gates':failed,'metric_snapshot':snapshot,'candidate_proxy_metrics_advisory_only':candidate,'manual_quality_status':manual_status,'manual_semantic_review':manual,'next_action':'Restore baseline and verify recovered operational window.'}
     traffic=set_traffic(a,100,0); recovery_started=run.state.setdefault('recovery_started_at',now()); run.save()
-    recovery=endpoint_workload(a,validation(domain=False),release['frozen_release']['max_new_tokens'],None)
+    recovery=endpoint_workload(a,validation(domain=False),release['frozen_release']['max_new_tokens'],None,frozen['baseline_model_identity'])
     require(all(r['deployment']==a.c['baseline_deployment'] for r in recovery['rows']),'Routed response did not return baseline after rollback.')
     snapshot=monitor_snapshot(a,recovery_started)
     require_monitor_coverage(snapshot,run,[a.c['baseline_deployment']])
