@@ -6,3 +6,9 @@ results-*/
 __pycache__/
 *.pyc
 .DS_Store
+.venv/
+.state/
+evidence/
+config.local.json
+models.lock.json
+*.egg-info/

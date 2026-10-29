@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Fail-closed scaffold entrypoint. This file performs no Azure operations.
+# Same engine from any nested checkout or Git worktree.
 set -euo pipefail
-printf '%s\n' 'NOT IMPLEMENTED: m2-demo3 / lab-step.sh. This is a scaffold placeholder.' >&2
-exit 3
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(git -C "$script_dir" rev-parse --show-toplevel)"
+cd "$repo_root"
+exec "${PYTHON:-python3}" -m ai300.cli --demo m2-demo3 step "$@"

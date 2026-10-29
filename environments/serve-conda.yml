@@ -1,0 +1,12 @@
+name: ai300-cpu-serving
+channels: [conda-forge]
+dependencies:
+  - python=3.12.16
+  - pip
+  - pip:
+      - --extra-index-url https://download.pytorch.org/whl/cpu
+      - torch==2.14.1+cpu
+      - transformers==5.20.2
+      - peft==0.21.2
+      - accelerate==1.15.0
+      - azureml-inference-server-http==1.5.1

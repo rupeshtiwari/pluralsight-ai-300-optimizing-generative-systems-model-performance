@@ -1,0 +1,8 @@
+{
+  "chunk_sizes": [
+    64,
+    128,
+    192
+  ],
+  "overlap_tokens": 16
+}

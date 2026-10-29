@@ -1,0 +1,10 @@
+{
+  "seed": 17,
+  "max_new_tokens": 96,
+  "gates": {
+    "schema_validity": 1.0,
+    "max_regression": 0.0,
+    "manual_correctness": 0.75,
+    "manual_answer_support": 0.75
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "token_limits": [
+    64,
+    96
+  ],
+  "latency_budget_ms": 30000,
+  "gates": {
+    "schema_validity": 1.0,
+    "manual_correctness": 0.75,
+    "manual_answer_support": 0.75
+  }
+}

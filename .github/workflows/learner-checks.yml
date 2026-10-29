@@ -1,19 +1,28 @@
-name: Learner scaffold syntax checks
-
+name: Learner source and offline logic checks
 on:
   pull_request:
-  push: {}
+  push:
+    branches: [main]
   workflow_dispatch: {}
-
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
-
 jobs:
-  static:
+  offline:
+    timeout-minutes: 5
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Shell scripts parse
-        run: find . -name '*.sh' -not -path './.git/*' -print0 | xargs -0 -r -n1 bash -n
-      - name: Course contract is valid JSON
-        run: python3 -m json.tool course-contract.json > /dev/null
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile source and parse wrappers
+        run: |
+          python -m compileall -q ai300 jobs serving
+          find module* -name '*.sh' -print0 | xargs -0 -r -n1 bash -n
+      - name: Offline logic tests (not Azure proof)
+        run: python -m unittest discover -s tests -v
+      - name: Learner contract and data splits
+        run: python scripts/check_contract.py

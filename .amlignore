@@ -1,0 +1,6 @@
+.git/
+.state/
+evidence/
+config.local.json
+.env*
+__pycache__/

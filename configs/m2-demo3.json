@@ -1,0 +1,13 @@
+{
+  "seed": 17,
+  "epochs": 2,
+  "rank": 4,
+  "learning_rate": 0.0002,
+  "target_modules": [
+    "q_proj",
+    "v_proj"
+  ],
+  "max_length": 512,
+  "max_new_tokens": 96,
+  "batch_size": 1
+}
