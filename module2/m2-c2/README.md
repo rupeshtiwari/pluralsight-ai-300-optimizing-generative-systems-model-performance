@@ -127,3 +127,9 @@ The [cleanup contract](../../setup/README.md#troubleshooting-and-cleanup) explai
 Compare your source with this exercise's `m2-demo1-after` reference using `git diff m2-demo1-after -- ai300 jobs serving configs data`; this does not move your checkout or overwrite your work. A matching tree does not prove matching cloud state.
 
 [Previous: Evaluate RAG variants with Azure services](../../module1/m1-c5/README.md) · [Course index](../../README.md) · [Next: Generate and version synthetic data with Foundry](../m2-c4/README.md)
+
+## Final-outline execution contract
+
+Train BAAI/bge-small-en-v1.5. Prefix training, validation and inference queries with `Represent this sentence for searching relevant passages: `; do not prefix corpus documents. Compare held-out nDCG@k against both baseline fields. A REJECT result retains evidence and does not adopt tuned vectors.
+
+Offline regression tests are not Azure execution evidence.

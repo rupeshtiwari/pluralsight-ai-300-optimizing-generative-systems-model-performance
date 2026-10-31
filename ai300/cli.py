@@ -8,7 +8,7 @@ def check_config(demo):
     path=ROOT/'config.local.json'; require(path.exists(),'Copy config.example.json to config.local.json, configure existing Azure resources and pin model commits; see setup/README.md.')
     c=read(path)
     fields=consumed_config(c,demo)
-    missing=[key for key,value in fields.items() if key!='model_revisions' and (not isinstance(value,str) or not value or 'REPLACE' in value)]
+    missing=[key for key,value in fields.items() if key not in ('model_revisions','adopted_retrieval') and (not isinstance(value,str) or not value or 'REPLACE' in value)]
     require(not missing,'Configure: '+', '.join(missing))
     for model,revision in fields.get('model_revisions',{}).items(): require(isinstance(revision,str) and re.fullmatch('[0-9a-f]{40}',revision),f'Immutable model commit missing: {model}. Run python -m ai300.setup freeze-models.')
     for name in ('azure.ai.ml','azure.identity','sentence_transformers','openai','mlflow'):
@@ -78,7 +78,7 @@ def cleanup(run):
 
 
 def main():
-    p=argparse.ArgumentParser(); p.add_argument('--demo',choices=HANDLERS,required=True); p.add_argument('action',choices=['up','step','check','down']); p.add_argument('number',type=int,nargs='?'); p.add_argument('--offline',action='store_true'); p.add_argument('--live',action='store_true'); args=p.parse_args(); require(not(args.offline and args.live),'Choose either --offline or --live.')
+    p=argparse.ArgumentParser(); p.add_argument('--demo',choices=HANDLERS,required=True); p.add_argument('action',choices=['up','step','check','down','prepare-alert']); p.add_argument('number',type=int,nargs='?'); p.add_argument('--offline',action='store_true'); p.add_argument('--live',action='store_true'); args=p.parse_args(); require(not(args.offline and args.live),'Choose either --offline or --live.')
     run=None
     try:
         def request_recovery(signum,frame):
@@ -104,6 +104,10 @@ def main():
         if args.action=='up':
             run=Run(args.demo,create=True); print('Initialized:',run.path); print('Azure runtime: NOT RUN. Execute the numbered steps; inspect real responses.'); return 0
         run=Run(args.demo,cleanup_only=args.action=='down'); count=len(next(x for x in read(ROOT/'course-contract.json')['demos'] if x['stem']==args.demo)['steps'])
+        if args.action=='prepare-alert':
+            require(args.demo=='m3-demo4','Alert preparation belongs to m3-demo4.')
+            from .demos import prepare_canary_alert
+            print(json.dumps(prepare_canary_alert(run),indent=2)); return 0
         if args.action=='down':
             run.attempt=run.path/('cleanup-'+__import__('uuid').uuid4().hex[:8]); run.attempt.mkdir(); report=cleanup(run); write(run.attempt/'report.json',report); print(json.dumps(report,indent=2)); return 0
         require(args.number is not None and 1<=args.number<=count,f'Choose a step from 1 to {count}.')

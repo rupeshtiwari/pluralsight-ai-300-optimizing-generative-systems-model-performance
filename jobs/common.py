@@ -8,7 +8,7 @@ PROMPT_VERSION='support-json-v1'
 def seed(value=17):
     random.seed(value); torch.manual_seed(value); torch.set_num_threads(int(os.getenv('OMP_NUM_THREADS','4')))
 def messages(q, corpus):
-    context=[{'source_id':sid,'text':corpus[sid]['text']} for sid in q.get('relevance',{})]
+    context=q['retrieved_context'] if 'retrieved_context' in q else [{'source_id':sid,'text':corpus[sid]['text']} for sid in q.get('relevance',{})]
     return [{'role':'system','content':'Return only JSON with answer (string) and source_ids (array). Use supplied evidence for support questions. Preserve all policy conditions. Answer general questions directly.'},{'role':'user','content':json.dumps({'question':q['question'],'evidence':context})}]
 def load_base(config):
     name='Qwen/Qwen3-0.6B'; rev=config['model_revisions'][name]

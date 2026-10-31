@@ -129,3 +129,9 @@ The [cleanup contract](../../setup/README.md#troubleshooting-and-cleanup) explai
 Compare your source with this exercise's `m3-demo1-after` reference using `git diff m3-demo1-after -- ai300 jobs serving configs data`; this does not move your checkout or overwrite your work. A matching tree does not prove matching cloud state.
 
 [Previous: Tune LoRA rank and select a checkpoint in Azure ML](../../module2/m2-c6/README.md) · [Course index](../../README.md) · [Next: Deploy a versioned model to Azure ML](../m3-c3/README.md)
+
+## Final-outline execution contract
+
+Record the measured, manually adopted retrieval settings as `adopted_retrieval` in config.local.json before starting this run (for example the actual selected mode, size, depth, field and weight). Use a measured baseline vector field; tuned-field adoption currently fails closed pending checkpoint restoration. The runner prepares that index layout, captures actual retrieved contexts and their hash once, then evaluates base plus both shortlisted adapters with exactly that context. Relevance labels remain scoring labels, never substitute context.
+
+Offline regression tests are not Azure execution evidence.

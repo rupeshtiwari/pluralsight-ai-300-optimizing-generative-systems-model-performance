@@ -153,3 +153,9 @@ The [cleanup contract](../../setup/README.md#troubleshooting-and-cleanup) explai
 Compare your source with this exercise's `m3-demo4-after` reference using `git diff m3-demo4-after -- ai300 jobs serving configs data`; this does not move your checkout or overwrite your work. A matching tree does not prove matching cloud state.
 
 [Previous: Optimize and test the Azure model endpoint](../m3-c4/README.md) · [Course index](../../README.md) · [Next: course index](../../README.md)
+
+## Final-outline execution contract
+
+Before recording, after lab-up and before numbered steps, configure the alert with `python -m ai300.cli --demo m3-demo4 prepare-alert`. This explicit preparation creates a billable Azure Monitor resource tracked for cleanup. Step 1 only reads and validates the prepared rule, then inspects populated telemetry. Never claim alert configuration proves a firing event or completed rehearsal.
+
+Offline regression tests are not Azure execution evidence.

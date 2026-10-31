@@ -88,7 +88,7 @@ class Azure:
             checkpoint=self.run.state.get('tuned_checkpoint_job'); require(checkpoint,'Selected embedding checkpoint identity is missing.'); body['filter']+=f" and tuned_checkpoint_job eq '{checkpoint}'"
         if mode in ('keyword','hybrid','semantic'): body['search']=q['question']
         if mode!='keyword':
-            vector=encoder.encode([q['question']],normalize_embeddings=True).tolist()[0] if encoder else self.encode([q['question']],name='BAAI/bge-small-en-v1.5' if field=='bge_vector' else 'sentence-transformers/all-MiniLM-L6-v2',query=True)[0]
+            vector=encoder.encode(['Represent this sentence for searching relevant passages: '+q['question']],normalize_embeddings=True).tolist()[0] if encoder else self.encode([q['question']],name='BAAI/bge-small-en-v1.5' if field=='bge_vector' else 'sentence-transformers/all-MiniLM-L6-v2',query=True)[0]
             body['vectorQueries']=[{'kind':'vector','vector':vector,'fields':field,'k':depth,'weight':weight}]; body['vectorFilterMode']='preFilter'
         if mode=='semantic':
             require(depth>=50,'Semantic ranking needs the approved 50 vector candidates.'); body.update(queryType='semantic',semanticConfiguration='support-semantic')
@@ -138,7 +138,7 @@ class Azure:
         auth=token.primary_key if endpoint.auth_mode=='key' else token.access_token
         request=urllib.request.Request(endpoint.scoring_uri,data=json.dumps(payload).encode(),headers={'Authorization':'Bearer '+auth,'Content-Type':'application/json',**headers},method='POST')
         started=time.perf_counter()
-        with urllib.request.urlopen(request,timeout=120) as response: result=json.loads(response.read())
+        with urllib.request.urlopen(request,timeout=210) as response: result=json.loads(response.read())
         require(isinstance(result,dict) and 'model_identity' in result,'Scoring response lacks model identity.')
         elapsed=(time.perf_counter()-started)*1000; self.run.raw('endpoint',{'deployment_override':deployment,'request':payload,'response':result,'latency_ms':elapsed,'at':now()})
         return result,elapsed

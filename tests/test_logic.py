@@ -217,16 +217,16 @@ class AcceptanceRegressionTests(unittest.TestCase):
         with self.assertRaises(Hold): require_course_endpoint(SimpleNamespace(name='ai300-lab',tags={}), 'ai300-lab')
     def test_semantic_review_accepts_valid_paraphrase_and_rejects_bad_support(self):
         from ai300 import demos
-        rows=[{'variant':variant,'query_id':kind,'query_type':kind,'raw_response':'OFFLINE DOUBLE','schema_validity':1,'correctness':1,'answer_support_proxy':0,'manual_correctness':1,'manual_answer_support':1} for variant in ('base','adapter') for kind in ('general','exact_identifier','paraphrase')]
+        rows=[{'variant':variant,'query_id':kind,'query_type':kind,'raw_response':'OFFLINE DOUBLE','schema_validity':1,'correctness':1,'answer_support_proxy':0,'manual_correctness':1,'manual_answer_support':1} for variant in ('base','adapter','adapter2') for kind in ('general','exact_identifier','paraphrase')]
         class RunDouble:
             config={}; spec={'gates':{'manual_correctness':.75,'manual_answer_support':.75,'schema_validity':1,'max_regression':0}}
-            def dependency(self,*a): return {'selected_job':'OFFLINE','output_path':'OFFLINE','output_uri':'OFFLINE','result':{}}
-            def previous(self,*a): return {'result':{'results':{v:{'rows':[r for r in rows if r['variant']==v]} for v in ('base','adapter')},'validation_sha256':'OFFLINE','config':{}},'job_name':'OFFLINE','result_sha256':'OFFLINE'}
+            def dependency(self,*a): return {'shortlisted_checkpoints':[{'job_name':'OFFLINE','output_path':'OFFLINE','output_uri':'OFFLINE','result':{}}]*2,'selected_job':'OFFLINE','output_path':'OFFLINE','output_uri':'OFFLINE','result':{}}
+            def previous(self,*a): return {'result':{'results':{v:{'rows':[r for r in rows if r['variant']==v]} for v in ('base','adapter','adapter2')},'validation_sha256':'OFFLINE','config':{}},'job_name':'OFFLINE','result_sha256':'OFFLINE'}
         with patch.object(demos,'manual_review',return_value={'rows':rows}):
             self.assertEqual(demos.model_evaluate(RunDouble(),3)['decision'],'PASS')
         bad=copy.deepcopy(rows)
         for row in bad:
-            if row['variant']=='adapter': row['manual_answer_support']=0
+            if row['variant']!='base': row['manual_answer_support']=0
         with patch.object(demos,'manual_review',return_value={'rows':bad}):
             self.assertEqual(demos.model_evaluate(RunDouble(),3)['decision'],'REJECT')
     def test_canary_restores_on_top_level_metric_or_dependency_failure(self):
@@ -240,11 +240,11 @@ class AcceptanceRegressionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             rows=[{'query_id':kind,'query_type':kind,'question':'OFFLINE','supplied_context':[],'reference_response':{},'raw_response':'OFFLINE valid paraphrase','schema_validity':1,'correctness':1,'answer_support_proxy':0,'latency_ms':10,'output_tokens':8} for kind in ('general','exact_identifier','paraphrase')]
             class RunDouble:
-                config={'candidate_deployment':'offline'}; path=Path(temp); state={}; spec={'token_limits':[64,96],'gates':{'manual_correctness':.75,'manual_answer_support':.75,'schema_validity':1}}
+                config={'candidate_deployment':'offline','baseline_deployment':'baseline'}; path=Path(temp); state={}; spec={'token_limits':[64,96],'gates':{'manual_correctness':.75,'manual_answer_support':.75,'schema_validity':1}}
                 def save(self): pass
                 def dependency(self,*a): return {'model_identity':{'id':'OFFLINE'},'deployment_snapshot':{'id':'OFFLINE'}}
             run=RunDouble()
-            with patch.object(demos,'deployment_snapshot',return_value={'id':'OFFLINE'}),patch.object(demos,'endpoint_workload',return_value={'rows':rows,'summary':core.summarize(rows)}) as workload:
+            with patch.object(demos,'monitor_snapshot',return_value={}),patch.object(demos,'require_monitor_coverage'),patch.object(demos,'deployment_snapshot',return_value={'id':'OFFLINE'}),patch.object(demos,'endpoint_workload',return_value={'rows':rows,'summary':core.summarize(rows)}) as workload:
                 with self.assertRaises(Hold): demos.endpoint_test(run,1)
                 self.assertEqual(workload.call_count,2)
                 review=core.jsonl(run.path/'validation-limits-review.jsonl')

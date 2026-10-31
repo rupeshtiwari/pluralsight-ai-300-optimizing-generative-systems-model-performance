@@ -128,3 +128,9 @@ The [cleanup contract](../../setup/README.md#troubleshooting-and-cleanup) explai
 Compare your source with this exercise's `m2-demo4-after` reference using `git diff m2-demo4-after -- ai300 jobs serving configs data`; this does not move your checkout or overwrite your work. A matching tree does not prove matching cloud state.
 
 [Previous: Train a LoRA adapter in Azure ML](../m2-c5/README.md) · [Course index](../../README.md) · [Next: Evaluate fine-tuned candidates in Azure ML](../../module3/m3-c2/README.md)
+
+## Final-outline execution contract
+
+Change rank only. Learning rate, batch size, seed, data, target modules, versions and budget stay fixed; alpha is derived as 2 × rank. Retain `shortlisted_checkpoints` (both selected adapters and lineage) for evaluation.
+
+Offline regression tests are not Azure execution evidence.
