@@ -99,7 +99,8 @@ def embedding_train(run,n):
         response,_=a.search(f"indexes/{a.c['search_index']}/docs/index",{'value':records[i:i+100]}); require(all(x['status'] for x in response['value']),'Tuned-vector indexing failed.')
     baseline=sweep(a,{'minilm':{'field':'mini_vector','size':128},'bge':{'field':'bge_vector','size':128}})
     tuned=sweep(a,{'tuned':{'field':'tuned_vector','size':128}},encoder=model)
-    return {'baseline':baseline,'tuned':tuned,'checkpoint_job':artifact['job_name'],'checkpoint_manifest_sha256':artifact['result_sha256'],'query_and_document_encoder_identical':True,'held_out_split':'validation; final test remains unused for selection'}
+    beats=all(tuned['variants']['tuned']['ndcg_at_k']>metrics['ndcg_at_k'] for metrics in baseline['variants'].values())
+    return {'decision':'ADOPT' if beats else 'REJECT','selection_metric':'ndcg_at_k','baseline':baseline,'tuned':tuned,'checkpoint_job':artifact['job_name'],'checkpoint_manifest_sha256':artifact['result_sha256'],'query_and_document_encoder_identical':True,'held_out_split':'validation; final test remains unused for selection'}
 
 def synthetic_data(run,n):
     a=Azure(run)
@@ -156,27 +157,39 @@ def lora_train(run,n):
 def lora_select(run,n):
     a=Azure(run); first=run.dependency('m2-demo3',3)
     if n==1:
-        original=first['result']['config']; config={**original,'rank':run.spec['rank'],'learning_rate':run.spec['learning_rate']}
-        # Exact first-run versions and budget remain fixed; rank+LR are intentionally a combined change.
+        original=first['result']['config']; config={**original,'rank':run.spec['rank']}
+        # Rank alone changes; train_lora derives alpha=2*rank, preserving alpha/rank.
         synthetic=run.dependency('m2-demo2',3)
         return submit(a,'train_lora',config,data=synthetic['data_assets']['training_bundle'])
     if n==2:
         second=completed(a,run.previous(1)); second['base']=read(Path(second['output_path'])/'base-validation.json'); second['adapted']=read(Path(second['output_path'])/'adapted-validation.json'); configs=[first['result']['config'],second['result']['config']]
-        controls=('seed','epochs','target_modules','max_length','max_new_tokens','base_revision','model_revisions','environment')
+        controls=('learning_rate','batch_size','seed','epochs','target_modules','max_length','max_new_tokens','base_revision','model_revisions','environment')
         require(all(configs[0][k]==configs[1][k] for k in controls),'Controlled factor drift between LoRA jobs.')
         require(first['result']['data_sha256']==second['result']['data_sha256'] and first['result']['validation_sha256']==second['result']['validation_sha256'],'Data changed between LoRA experiments.')
-        return {'first':first,'second':second,'controlled_factors':list(controls),'interpretation':'Rank and learning rate both changed; no rank-only causal claim.'}
+        return {'first':first,'second':second,'controlled_factors':list(controls),'interpretation':'Rank-only comparison; alpha/rank=2 and every other training control remains fixed.'}
     previous=run.previous(2); candidates=[previous['first'],previous['second']]
     selected=min(candidates,key=lambda r:(r['result']['validation_loss'],r['result']['elapsed_seconds']))
-    return {'selected_job':selected['job_name'],'output_path':selected['output_path'],'output_uri':selected['output_uri'],'result':selected['result'],'selection_rule':'lowest validation loss, elapsed CPU time breaks ties; task quality must still pass module 3 gates','candidate_versions':[{'job':r['job_name'],'validation_loss':r['result']['validation_loss'],'elapsed_seconds':r['result']['elapsed_seconds'],'adapted_validation':r['adapted']['summary']} for r in candidates]}
+    return {'selected_job':selected['job_name'],'output_path':selected['output_path'],'output_uri':selected['output_uri'],'result':selected['result'],'selection_rule':'lowest validation loss, elapsed CPU time breaks ties; task quality must still pass module 3 gates','shortlisted_checkpoints':candidates,'candidate_versions':[{'job':r['job_name'],'validation_loss':r['result']['validation_loss'],'elapsed_seconds':r['result']['elapsed_seconds'],'adapted_validation':r['adapted']['summary']} for r in candidates]}
 
 def model_evaluate(run,n):
     a=Azure(run); selected=run.dependency('m2-demo4',3)
-    if n==1: return submit(a,'evaluate',run.spec,adapter=selected['output_uri'])
+    if n==1:
+        settings=run.config.get('adopted_retrieval')
+        require(isinstance(settings,dict) and settings,'Record the reviewed adopted_retrieval settings in config.local.json before evaluation.')
+        a.prepare_index()
+        require(settings.get('field','mini_vector')!='tuned_vector','Use a measured baseline field for adopted retrieval; tuned adoption requires its exact checkpoint restoration.')
+        contexts={q['query_id']:a.query(q,**settings)[0] for q in validation(domain=False)}
+        candidates=selected['shortlisted_checkpoints']; require(len(candidates)==2,'Both shortlisted checkpoints are required.')
+        config={**run.spec,'retrieved_context':contexts,'retrieval_settings':settings,'retrieved_context_sha256':object_hash(contexts)}
+        return submit(a,'evaluate',config,adapter=candidates[0]['output_uri'],adapter2=candidates[1]['output_uri'])
     if n==2:
         job=completed(a,run.previous(1)); review_path,_=prepare_manual_review(run,'model-validation',[{**r,'variant':name} for name,value in job['result']['results'].items() for r in value['rows']]); return {**job,'manual_review_path':str(review_path),'failure_rows':{name:[r for r in report['rows'] if not all(r[k] for k in ('correctness','answer_support_proxy','schema_validity'))] for name,report in job['result']['results'].items()}}
     report=run.previous(2); results=report['result']['results']; reviewed=manual_review(run,'model-validation',[{**r,'variant':name} for name,value in results.items() for r in value['rows']])
-    base=summarize([r for r in reviewed['rows'] if r['variant']=='base']); candidate=summarize([r for r in reviewed['rows'] if r['variant']=='adapter']); gates=run.spec['gates']
+    base=summarize([r for r in reviewed['rows'] if r['variant']=='base']); candidates={name:summarize([r for r in reviewed['rows'] if r['variant']==name]) for name in ('adapter','adapter2')}; gates=run.spec['gates']
+    eligible=[name for name,metrics in candidates.items() if all(metrics[key]>=floor and metrics[key]>=base[key]-gates['max_regression'] and all(group[key]>=floor and group[key]>=base['by_query_type'][kind][key]-gates['max_regression'] for kind,group in metrics['by_query_type'].items()) for key,floor in gates.items() if key!='max_regression')]
+    winner=max(eligible or list(candidates),key=lambda name:candidates[name]['manual_correctness']); candidate=candidates[winner]
+    checkpoint=selected['shortlisted_checkpoints'][0 if winner=='adapter' else 1]
+    selected={**selected,'selected_job':checkpoint['job_name'],'output_path':checkpoint['output_path'],'output_uri':checkpoint['output_uri'],'result':checkpoint['result']}
     checks={key:candidate[key]>=floor and candidate[key]>=base[key]-gates['max_regression'] for key,floor in gates.items() if key!='max_regression'}
     for kind in ('general','exact_identifier','paraphrase'):
         for key,floor in gates.items():
@@ -248,6 +261,7 @@ def endpoint_test(run,n):
             write(observations,results); run.state['benchmark_observations']={'path':str(observations),'sha256':digest(observations)}; run.save()
         require(digest(observations)==run.state['benchmark_observations']['sha256'],'Validation benchmark observations changed.')
         results=read(observations)
+        snapshot=monitor_snapshot(a); require_monitor_coverage(snapshot,run,[run.config['candidate_deployment']])
         reviewed=manual_review(run,'validation-limits',[{**r,'variant':limit} for limit,value in results.items() for r in value['rows']])
         semantic={limit:summarize([r for r in reviewed['rows'] if r['variant']==limit]) for limit in results}
         eligible=[]
@@ -255,23 +269,32 @@ def endpoint_test(run,n):
             if all(summary[key]>=floor and all(group[key]>=floor for group in summary['by_query_type'].values()) for key,floor in run.spec['gates'].items()): eligible.append(limit)
         require(eligible,'No validation output-length setting passes human semantic and schema gates; final test remains unopened.')
         selected=min(eligible,key=lambda key:semantic[key]['p95_latency_ms'])
-        return {'manual_semantic_review':reviewed,'benchmarks':results,'semantic_quality_by_limit':semantic,'automatic_proxy_use':'diagnostics only; never acceptance','selected_max_new_tokens':int(selected),'selection_rule':'minimum validation p95 latency among settings passing human correctness/support and schema floors in every query type','model_identity':identity}
+        return {'manual_semantic_review':reviewed,'benchmarks':results,'utilization_evidence':snapshot,'semantic_quality_by_limit':semantic,'automatic_proxy_use':'diagnostics only; never acceptance','selected_max_new_tokens':int(selected),'selection_rule':'minimum validation p95 latency among settings passing human correctness/support and schema floors in every query type','model_identity':identity}
     if n==2:
         # The test ledger is dataset-global, not run-local. A new run cannot erase prior consumption.
         questions=[q for q in jsonl(ROOT/'data/queries.jsonl') if q['split']=='test']; dataset_hash=object_hash(questions)
         ledger=ROOT/'.state'/'consumed-final-tests'/f'{dataset_hash}.json'
         require(not ledger.exists(),'This final-test set has already been opened. After tuning, obtain a new untouched test set; do not delete its ledger.')
-        frozen={'baseline_deployment_snapshot':deployment['baseline_deployment_snapshot'],'baseline_model_identity':deployment['baseline_model_identity'],'endpoint_auth_mode':deployment['endpoint_auth_mode'],'deployment_snapshot':current,'environment_identity':deployment['environment_identity'],'model_id':deployment['model_id'],'model_identity':identity,'environment':deployment['environment'],'scoring_sha256':deployment['scoring_sha256'],'max_new_tokens':run.previous(1)['selected_max_new_tokens'],'do_sample':False,'test_sha256':dataset_hash}
+        require(deployment_snapshot(a,run.config['baseline_deployment'])==deployment['baseline_deployment_snapshot'],'Baseline changed before final test.')
+        frozen={'baseline_deployment_snapshot':deployment['baseline_deployment_snapshot'],'baseline_model_identity':deployment['baseline_model_identity'],'endpoint_auth_mode':deployment['endpoint_auth_mode'],'deployment_snapshot':current,'environment_identity':deployment['environment_identity'],'model_id':deployment['model_id'],'model_identity':identity,'environment':deployment['environment'],'scoring_sha256':deployment['scoring_sha256'],'request_timeout_ms':current['request_timeout_ms'],'max_new_tokens':run.previous(1)['selected_max_new_tokens'],'do_sample':False,'test_sha256':dataset_hash}
         write(run.path/'frozen-release.json',frozen); ledger.parent.mkdir(parents=True,exist_ok=True)
         with ledger.open('x') as handle: json.dump({'opened_at':now(),'run':str(run.path),'release_hash':object_hash(frozen),'status':'OPENED_NO_RERUN'},handle)
+        baseline=endpoint_workload(a,questions,frozen['max_new_tokens'],run.config['baseline_deployment'],deployment['baseline_model_identity'])
         result=endpoint_workload(a,questions,frozen['max_new_tokens'],run.config['candidate_deployment'],identity)
+        result['baseline_comparison']=baseline
         review_path,_=prepare_manual_review(run,'final-test',result['rows'])
         return {'manual_review_path':str(review_path),'frozen_release':frozen,'frozen_release_sha256':object_hash(frozen),'final_test':result,'test_ledger':str(ledger)}
-    previous=run.previous(2); reviewed=manual_review(run,'final-test',previous['final_test']['rows']); summary=summarize(reviewed['rows']); checks={key:summary[key]>=floor for key,floor in run.spec['gates'].items()}; checks['p95_latency_ms']=summary['p95_latency_ms']<=run.spec['latency_budget_ms']
+    previous=run.previous(2); snapshot=monitor_snapshot(a); require_monitor_coverage(snapshot,run,[run.config['baseline_deployment'],run.config['candidate_deployment']])
+    reviewed=manual_review(run,'final-test',previous['final_test']['rows']); summary=summarize(reviewed['rows']); checks={key:summary[key]>=floor for key,floor in run.spec['gates'].items()}; checks['p95_latency_ms']=summary['p95_latency_ms']<=run.spec['latency_budget_ms']
     for kind,metrics in summary['by_query_type'].items():
         for key,floor in run.spec['gates'].items(): checks[kind+'_'+key]=metrics[key]>=floor
-    decision='PASS' if all(checks.values()) else 'REJECT'; result={'manual_semantic_review':reviewed,'semantic_quality_summary':summary,'automatic_proxy_use':'diagnostics only; never acceptance','release_decision':decision,'gate_checks':checks,'final_test':previous['final_test'],'frozen_release':previous['frozen_release'],'frozen_release_sha256':previous['frozen_release_sha256'],'next_action':'Proceed to controlled canary.' if decision=='PASS' else 'Retain baseline. Further tuning requires a new untouched test set.'}
-    result.update(a.track('final-test',{'release_pass':int(decision=='PASS')},run.attempt)); return result
+    decision='PASS' if all(checks.values()) else 'REJECT'; result={'manual_semantic_review':reviewed,'semantic_quality_summary':summary,'automatic_proxy_use':'diagnostics only; never acceptance','release_decision':decision,'utilization_evidence':snapshot,'baseline_comparison':previous['final_test']['baseline_comparison'],'gate_checks':checks,'final_test':previous['final_test'],'frozen_release':previous['frozen_release'],'frozen_release_sha256':previous['frozen_release_sha256'],'next_action':'Proceed to controlled canary.' if decision=='PASS' else 'Retain baseline. Further tuning requires a new untouched test set.'}
+    write(run.attempt/'release-evidence.json',result)
+    result.update(a.track('final-test',{'release_pass':int(decision=='PASS')},run.attempt))
+    model=a.ml.models.get(name=identity['model_name'],version=identity['model_version'])
+    model.tags={**(model.tags or {}),'release_mlflow_run_id':result['mlflow_run_id'],'release_evidence_sha256':digest(run.attempt/'release-evidence.json'),'frozen_release_sha256':previous['frozen_release_sha256']}
+    a.ml.models.create_or_update(model)
+    return result
 
 
 def endpoint_resource(run): return f"/subscriptions/{run.config['subscription_id']}/resourceGroups/{run.config['resource_group']}/providers/Microsoft.MachineLearningServices/workspaces/{run.config['workspace']}/onlineEndpoints/{run.config['endpoint']}"
@@ -322,6 +345,16 @@ def set_traffic(a,baseline,candidate):
         a.run.state['baseline_safety_restored']=baseline==100 and candidate==0; a.run.save()
     return observed
 
+def prepare_canary_alert(a):
+    run=a.run; resource=endpoint_resource(run)
+    test=run.spec['rollback_test']; candidate_threshold=test['candidate_p95_threshold_ms'] if test['enabled'] else run.spec['latency_budget_ms']
+    trigger={'label':test['label'] if test['enabled'] else 'NORMAL_OPERATIONAL_GATE'}
+    name='ai300-p95-'+a.c['endpoint']; alert=f"/subscriptions/{a.c['subscription_id']}/resourceGroups/{a.c['resource_group']}/providers/Microsoft.Insights/metricAlerts/{name}"
+    spec={'location':'global','tags':{'course':'ai300','run_id':run.state['run_id']},'properties':{'description':trigger['label'],'severity':2,'enabled':True,'scopes':[resource],'evaluationFrequency':'PT1M','windowSize':'PT5M','criteria':{'odata.type':'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria','allOf':[{'criterionType':'StaticThresholdCriterion','name':'candidate-p95','metricNamespace':'Microsoft.MachineLearningServices/workspaces/onlineEndpoints','metricName':'RequestLatency_P95','operator':'GreaterThan','threshold':candidate_threshold,'timeAggregation':'Average','dimensions':[{'name':'deployment','operator':'Include','values':[a.c['candidate_deployment']]}]}]},'actions':[{'actionGroupId':a.c['monitor_action_group_id']}]}}
+    a.arm('PUT',alert,spec,version='2018-03-01'); run.state['resources']['alert_id']=alert; run.save()
+    return {'alert_id':alert,'status':'CONFIGURED_NOT_REHEARSED'}
+
+
 def _canary_step(run,n):
     a=Azure(run); release=run.dependency('m3-demo3',3); require(release['release_decision']=='PASS','Final-test release gate failed; canary is blocked.')
     require(deployment_snapshot(a,run.config['candidate_deployment'])==release['frozen_release']['deployment_snapshot'],'Candidate deployment changed after frozen final test.')
@@ -337,9 +370,10 @@ def _canary_step(run,n):
     test=run.spec['rollback_test']; candidate_threshold=test['candidate_p95_threshold_ms'] if test['enabled'] else run.spec['latency_budget_ms']
     trigger={'candidate_p95_threshold_ms':candidate_threshold,'baseline_recovery_budget_ms':run.spec['latency_budget_ms'],'label':test['label'] if test['enabled'] else 'NORMAL_OPERATIONAL_GATE','test_only':test['enabled'],'declared_before_traffic':True}
     if n==1:
-        name='ai300-p95-'+run.state['run_id'].lower(); alert=f"/subscriptions/{a.c['subscription_id']}/resourceGroups/{a.c['resource_group']}/providers/Microsoft.Insights/metricAlerts/{name}"
+        name='ai300-p95-'+a.c['endpoint']; alert=f"/subscriptions/{a.c['subscription_id']}/resourceGroups/{a.c['resource_group']}/providers/Microsoft.Insights/metricAlerts/{name}"
         spec={'location':'global','tags':{'course':'ai300','run_id':run.state['run_id']},'properties':{'description':trigger['label'],'severity':2,'enabled':True,'scopes':[resource],'evaluationFrequency':'PT1M','windowSize':'PT5M','criteria':{'odata.type':'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria','allOf':[{'criterionType':'StaticThresholdCriterion','name':'candidate-p95','metricNamespace':'Microsoft.MachineLearningServices/workspaces/onlineEndpoints','metricName':'RequestLatency_P95','operator':'GreaterThan','threshold':candidate_threshold,'timeAggregation':'Average','dimensions':[{'name':'deployment','operator':'Include','values':[a.c['candidate_deployment']]}]}]},'actions':[{'actionGroupId':a.c['monitor_action_group_id']}]}}
-        a.arm('PUT',alert,spec,version='2018-03-01'); actual=a.arm('GET',alert,version='2018-03-01'); run.state['resources']['alert_id']=alert; run.save()
+        actual=a.arm('GET',alert,version='2018-03-01')
+        require(all(actual.get('properties',{}).get(k)==v for k,v in spec['properties'].items()),'Prepared alert differs from declared scope, metric, threshold, deployment or action group.')
         # Generate a bounded baseline/direct-candidate validation workload before opening metrics.
         responses=[]
         for deployment,identity in ((a.c['baseline_deployment'],frozen['baseline_model_identity']),(a.c['candidate_deployment'],frozen['model_identity'])): responses.append(endpoint_workload(a,validation(domain=False),frozen['max_new_tokens'],deployment,identity))

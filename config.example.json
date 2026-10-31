@@ -1,19 +1,39 @@
 {
-  "subscription_id": "REPLACE", "resource_group": "REPLACE", "workspace": "REPLACE",
-  "search_endpoint": "https://REPLACE.search.windows.net", "search_index": "ai300-support",
+  "subscription_id": "REPLACE",
+  "resource_group": "REPLACE",
+  "workspace": "REPLACE",
+  "search_endpoint": "https://REPLACE.search.windows.net",
+  "search_index": "ai300-support",
   "search_resource_id": "/subscriptions/REPLACE/resourceGroups/REPLACE/providers/Microsoft.Search/searchServices/REPLACE",
   "foundry_endpoint": "https://REPLACE.openai.azure.com/openai/v1/",
   "foundry_resource_id": "/subscriptions/REPLACE/resourceGroups/REPLACE/providers/Microsoft.CognitiveServices/accounts/REPLACE",
-  "foundry_deployment": "REPLACE", "foundry_model": "gpt-5.6-luna", "foundry_version": "2026-07-09",
-  "cpu_compute": "REPLACE", "training_environment": "azureml:ai300-cpu-training:REPLACE",
+  "foundry_deployment": "REPLACE",
+  "foundry_model": "gpt-5.6-luna",
+  "foundry_version": "2026-07-09",
+  "cpu_compute": "REPLACE",
+  "training_environment": "azureml:ai300-cpu-training:REPLACE",
   "serving_environment": "azureml:ai300-cpu-serving:REPLACE",
-  "endpoint": "REPLACE", "baseline_deployment": "baseline", "candidate_deployment": "candidate",
-  "endpoint_instance_type": "Standard_DS3_v2", "monitor_action_group_id": "REPLACE",
+  "endpoint": "REPLACE",
+  "baseline_deployment": "baseline",
+  "candidate_deployment": "candidate",
+  "endpoint_instance_type": "Standard_DS3_v2",
+  "monitor_action_group_id": "REPLACE",
   "model_revisions": {
     "sentence-transformers/all-MiniLM-L6-v2": "REPLACE_WITH_40_CHARACTER_COMMIT",
     "BAAI/bge-small-en-v1.5": "REPLACE_WITH_40_CHARACTER_COMMIT",
     "Qwen/Qwen3-0.6B": "REPLACE_WITH_40_CHARACTER_COMMIT"
   },
   "runs": {},
-  "cleanup": {"delete_candidate": true, "delete_endpoint": false, "delete_search_index": false, "delete_alert": true}
+  "cleanup": {
+    "delete_candidate": true,
+    "delete_endpoint": false,
+    "delete_search_index": false,
+    "delete_alert": true
+  },
+  "adopted_retrieval": {
+    "mode": "vector",
+    "size": 128,
+    "depth": 10,
+    "field": "mini_vector"
+  }
 }

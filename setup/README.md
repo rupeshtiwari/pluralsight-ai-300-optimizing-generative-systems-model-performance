@@ -146,3 +146,7 @@ All **11 complete demos require Azure**. Without Azure you can read/edit source,
 The runner converts normal Ctrl+C, termination and its 30-minute deadline into a bounded recovery attempt. It allows up to ten additional minutes for owned Azure operations to restore baseline before forcing its child to stop. Heartbeats continue during recovery. A forced kill reports traffic/resource state as **UNKNOWN**; use Azure ML to restore baseline and run `lab-down.sh`. An outer automation must allow this recovery grace instead of killing the process group immediately. No local process exit is treated as proof of Azure recovery.
 
 Only endpoints named `ai300-...` with `course=ai300` and `purpose=disposable-course-lab` tags can receive course mutations or test traffic. The deliberately strict rollback-test threshold cannot be applied to an ordinary configured endpoint.
+
+## Final-outline preparation
+
+Record the measured adopted retrieval settings in `adopted_retrieval`; the example values are placeholders for a reviewed selection, not evidence of adoption. For M3 C5 initialize the run then execute `python -m ai300.cli --demo m3-demo4 prepare-alert` before filming. All Azure permissions, model access, endpoint quota (at least 16 vCPUs per outline), real CPU timings and populated telemetry remain live prerequisites.

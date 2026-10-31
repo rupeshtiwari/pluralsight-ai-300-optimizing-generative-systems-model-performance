@@ -1080,5 +1080,15 @@
       "ai300/versioning.py"
     ],
     "recovery_grace_seconds": 600
+  },
+  "final_outline_sha256": "96f597b1f746d8987477a47c3e28c60eea54ad734687a5315c10087ddea5d594",
+  "implementation_controls": {
+    "embedding_model": "BAAI/bge-small-en-v1.5",
+    "embedding_query_instruction": "Represent this sentence for searching relevant passages: ",
+    "lora_comparison": "rank only; fixed alpha/rank=2, learning rate, data, seed and budget",
+    "evaluation": "base and both shortlisted adapters; identical adopted retrieval context",
+    "final_workload": "candidate and frozen baseline; genuine CPU/memory evidence required",
+    "monitor_alert": "configured in preparation; demo GET inspection only",
+    "azure_execution": "NOT RUN"
   }
 }

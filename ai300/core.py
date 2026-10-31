@@ -182,10 +182,11 @@ def consumed_config(config,demo):
     foundry=['foundry_endpoint','foundry_resource_id','foundry_deployment','foundry_model','foundry_version']
     training=['cpu_compute','training_environment']
     endpoint=['endpoint','baseline_deployment','candidate_deployment','serving_environment','endpoint_instance_type']
-    names={'m1-demo1':workspace+search,'m1-demo2':workspace+search,'m1-demo3':workspace+search+foundry,'m2-demo1':workspace+training+search,'m2-demo2':workspace+foundry,'m2-demo3':workspace+training,'m2-demo4':workspace+training,'m3-demo1':workspace+training,'m3-demo2':workspace+endpoint,'m3-demo3':workspace+endpoint,'m3-demo4':workspace+endpoint+['monitor_action_group_id']}[demo]
+    names={'m1-demo1':workspace+search,'m1-demo2':workspace+search,'m1-demo3':workspace+search+foundry,'m2-demo1':workspace+training+search,'m2-demo2':workspace+foundry,'m2-demo3':workspace+training,'m2-demo4':workspace+training,'m3-demo1':workspace+training+search+['adopted_retrieval'],'m3-demo2':workspace+endpoint,'m3-demo3':workspace+endpoint,'m3-demo4':workspace+endpoint+['monitor_action_group_id']}[demo]
     result={key:config.get(key) for key in names}
     if demo!='m2-demo2':
-        models=['sentence-transformers/all-MiniLM-L6-v2','BAAI/bge-small-en-v1.5'] if demo.startswith('m1') or demo=='m2-demo1' else ['Qwen/Qwen3-0.6B']
+        models=['sentence-transformers/all-MiniLM-L6-v2','BAAI/bge-small-en-v1.5'] if demo.startswith('m1') or demo in ('m2-demo1','m3-demo1') else ['Qwen/Qwen3-0.6B']
+        if demo=='m3-demo1': models=models+['Qwen/Qwen3-0.6B']
         result['model_revisions']={model:config.get('model_revisions',{}).get(model) for model in models}
     return result
 

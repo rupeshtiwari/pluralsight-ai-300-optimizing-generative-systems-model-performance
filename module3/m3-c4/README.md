@@ -134,3 +134,9 @@ The [cleanup contract](../../setup/README.md#troubleshooting-and-cleanup) explai
 Compare your source with this exercise's `m3-demo3-after` reference using `git diff m3-demo3-after -- ai300 jobs serving configs data`; this does not move your checkout or overwrite your work. A matching tree does not prove matching cloud state.
 
 [Previous: Deploy a versioned model to Azure ML](../m3-c3/README.md) · [Course index](../../README.md) · [Next: Monitor Azure traffic and verify rollback](../m3-c5/README.md)
+
+## Final-outline execution contract
+
+Run both frozen baseline and candidate against identical final-test questions and output limit. The single-use ledger remains consumed after opening. Retain both workloads before telemetry inspection in Step 3. Require genuine latency, request, CPU and memory metrics; empty windows remain HOLD. Freeze request timeout with model/environment/inference identity. A missing metric must not cause a second final-test invocation.
+
+Offline regression tests are not Azure execution evidence.
