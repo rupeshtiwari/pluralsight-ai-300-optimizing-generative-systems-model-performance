@@ -99,7 +99,7 @@ class ReviewRegressionTests(unittest.TestCase):
         azure.search=search; azure.query({'question':'fixture'})
         self.assertIn(second,requests[0]['filter']); self.assertNotIn(first,requests[0]['filter'])
     def test_declared_contract_controls_are_enforced(self):
-        core.validate_demo_spec('m1-demo1',{'chunk_sizes':[64,128,192],'overlap_tokens':8})
+        core.validate_demo_spec('m1-demo1',{'chunk_sizes':[64,128,192],'overlap_tokens':8,'latency_budget_ms':30000})
         with self.assertRaises(Hold): core.validate_demo_spec('m1-demo1',{'chunk_sizes':[64,128],'overlap_tokens':16})
         with self.assertRaises(Hold): core.validate_demo_spec('m1-demo2',{'semantic_candidates':20})
         with self.assertRaises(Hold): core.validate_demo_spec('m2-demo2',{'manual_review_required':False})
@@ -164,10 +164,11 @@ class AcceptanceRegressionTests(unittest.TestCase):
             with self.subTest(scenario=scenario), tempfile.TemporaryDirectory() as temp:
                 class RunDouble:
                     path=Path(temp); config={'baseline_deployment':'baseline','candidate_deployment':'candidate','subscription_id':'OFFLINE','resource_group':'OFFLINE','workspace':'OFFLINE','endpoint':'ai300-offline'}
-                    spec={**read(core.ROOT/'configs/m3-demo4.json'),'requests':2}
+                    spec={**read(core.ROOT/'configs/m3-demo4.json'),'requests':2,'minimum_observation_seconds':0}
                     def __init__(self):
                         self.state={'canary_started_at':'OFFLINE','baseline_safety_restored':False}; self.records=[]
                     def dependency(self,*args): return {'release_decision':'PASS','frozen_release':copy.deepcopy(frozen)}
+                    def previous(self,*args): return {'decision':'ELIGIBLE_PENDING_ROLLBACK'}
                     def save(self): write(self.path/'state.json',self.state)
                     def raw(self,name,value):
                         self.records.append((name,value)); write(self.path/f'{len(self.records)}-{name}.json',value)
@@ -189,8 +190,8 @@ class AcceptanceRegressionTests(unittest.TestCase):
                 def set_traffic(azure,baseline,candidate):
                     traffic_calls.append((baseline,candidate)); run.state['baseline_safety_restored']=baseline==100 and candidate==0; run.save()
                     return {'baseline':baseline,'candidate':candidate}
-                step=4 if scenario in ('recovery_identity_changed','unchanged') else 2
-                with patch.object(demos,'Azure',AzureDouble), patch.object(demos,'deployment_snapshot',side_effect=snapshot), patch.object(demos,'course_endpoint'), patch.object(demos,'set_traffic',side_effect=set_traffic), patch.object(demos,'monitor_snapshot',return_value={'offline_test_double':True}) as monitor, patch.object(demos,'require_monitor_coverage'), patch.object(demos,'metric_values',return_value=[1]):
+                step=4 if scenario in ('recovery_identity_changed','unchanged') else 1
+                with patch.object(demos,'questions_with_context',side_effect=lambda a,qs:[{**q,'retrieved_context':[]} for q in qs]), patch.object(demos,'Azure',AzureDouble), patch.object(demos,'deployment_snapshot',side_effect=snapshot), patch.object(demos,'course_endpoint'), patch.object(demos,'set_traffic',side_effect=set_traffic), patch.object(demos,'monitor_snapshot',return_value={'offline_test_double':True}) as monitor, patch.object(demos,'require_monitor_coverage'), patch.object(demos,'metric_values',return_value=[1]):
                     if scenario=='unchanged':
                         report=demos.canary_rollback(run,step)
                         self.assertTrue(report['rollback_verified'])
@@ -240,11 +241,11 @@ class AcceptanceRegressionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             rows=[{'query_id':kind,'query_type':kind,'question':'OFFLINE','supplied_context':[],'reference_response':{},'raw_response':'OFFLINE valid paraphrase','schema_validity':1,'correctness':1,'answer_support_proxy':0,'latency_ms':10,'output_tokens':8} for kind in ('general','exact_identifier','paraphrase')]
             class RunDouble:
-                config={'candidate_deployment':'offline','baseline_deployment':'baseline'}; path=Path(temp); state={}; spec={'token_limits':[64,96],'gates':{'manual_correctness':.75,'manual_answer_support':.75,'schema_validity':1}}
+                config={'candidate_deployment':'offline','baseline_deployment':'baseline'}; path=Path(temp); state={}; spec={'latency_budget_ms':30000,'token_limits':[64,96],'gates':{'manual_correctness':.75,'manual_answer_support':.75,'schema_validity':1}}
                 def save(self): pass
                 def dependency(self,*a): return {'model_identity':{'id':'OFFLINE'},'deployment_snapshot':{'id':'OFFLINE'}}
             run=RunDouble()
-            with patch.object(demos,'monitor_snapshot',return_value={}),patch.object(demos,'require_monitor_coverage'),patch.object(demos,'deployment_snapshot',return_value={'id':'OFFLINE'}),patch.object(demos,'endpoint_workload',return_value={'rows':rows,'summary':core.summarize(rows)}) as workload:
+            with patch.object(demos,'questions_with_context',side_effect=lambda a,qs:qs),patch.object(demos,'monitor_snapshot',return_value={}),patch.object(demos,'require_monitor_coverage'),patch.object(demos,'deployment_snapshot',return_value={'id':'OFFLINE'}),patch.object(demos,'endpoint_workload',return_value={'rows':rows,'summary':core.summarize(rows),'window_start':'OFFLINE-START','window_end':'OFFLINE-END'}) as workload:
                 with self.assertRaises(Hold): demos.endpoint_test(run,1)
                 self.assertEqual(workload.call_count,2)
                 review=core.jsonl(run.path/'validation-limits-review.jsonl')

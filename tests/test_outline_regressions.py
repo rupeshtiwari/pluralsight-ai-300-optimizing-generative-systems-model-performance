@@ -93,6 +93,7 @@ class OutlineRegressionTests(unittest.TestCase):
         actual=[{'source_id':'wrong-document','content':'Retrieved, not oracle'}]
         azure=Mock(); azure.query.return_value=(actual,[],1)
         run=SimpleNamespace(config={'adopted_retrieval':{'field':'bge_vector','size':128}},spec={},dependency=lambda *args:{'shortlisted_checkpoints':[{'output_uri':'one'},{'output_uri':'two'}]})
+        azure.c=run.config
         with patch.object(demos,'Azure',return_value=azure),patch.object(demos,'validation',return_value=questions),patch.object(demos,'submit',return_value={}) as submit:
             demos.model_evaluate(run,1)
         config=submit.call_args.args[2]
@@ -114,9 +115,9 @@ class OutlineRegressionTests(unittest.TestCase):
             root=Path(temp); path=root/'run'; path.mkdir()
             snap={'request_timeout_ms':180000}
             dep={'model_identity':{'id':'candidate'},'baseline_model_identity':{'id':'baseline'},'deployment_snapshot':snap,'baseline_deployment_snapshot':snap,'endpoint_auth_mode':'key','environment_identity':{},'model_id':'model','environment':'env','scoring_sha256':'hash'}
-            questions=[{'split':'test','query_id':'q','question':'Q'}]
-            run=SimpleNamespace(config={'candidate_deployment':'candidate','baseline_deployment':'baseline'},state={},path=path,dependency=lambda *args:dep,previous=lambda n:{'selected_max_new_tokens':64})
-            with patch.object(demos,'ROOT',root),patch.object(demos,'jsonl',return_value=questions),patch.object(demos,'deployment_snapshot',return_value=snap),patch.object(demos,'endpoint_workload',side_effect=[{'rows':[]},{'rows':[]}]) as workload,patch.object(demos,'prepare_manual_review',return_value=('review',{})):
+            questions=[{'split':'test','query_id':'q','question':'Q','retrieved_context':[]}]
+            run=SimpleNamespace(spec={'request_timeout_ms':180000},config={'candidate_deployment':'candidate','baseline_deployment':'baseline','adopted_retrieval':{'mode':'vector'}},state={},path=path,dependency=lambda *args:dep,previous=lambda n:{'selected_max_new_tokens':64})
+            with patch.object(demos,'questions_with_context',side_effect=lambda a,qs:qs),patch.object(demos,'ROOT',root),patch.object(demos,'jsonl',return_value=questions),patch.object(demos,'deployment_snapshot',return_value=snap),patch.object(demos,'endpoint_workload',side_effect=[{'rows':[]},{'rows':[]}]) as workload,patch.object(demos,'prepare_manual_review',return_value=('review',{})):
                 result=demos.endpoint_test(run,2)
                 self.assertEqual(workload.call_count,2)
                 self.assertEqual([call.args[3] for call in workload.call_args_list],['baseline','candidate'])
@@ -127,12 +128,12 @@ class OutlineRegressionTests(unittest.TestCase):
 
     def test_release_report_links_exact_model_version_and_preserves_tags(self):
         rows=[{'query_id':'q','query_type':'domain','schema_validity':1,'manual_correctness':1,'manual_answer_support':1,'latency_ms':10}]
-        previous={'final_test':{'rows':rows,'baseline_comparison':{'rows':rows}},'frozen_release':{'model':'frozen'},'frozen_release_sha256':'frozen-hash'}
+        previous={'final_test':{'window_end':'END','rows':rows,'baseline_comparison':{'rows':rows,'window_start':'START'}},'frozen_release':{'model':'frozen'},'frozen_release_sha256':'frozen-hash'}
         identity={'model_name':'exact-model','model_version':'17'}
         with tempfile.TemporaryDirectory() as temp:
-            run=SimpleNamespace(config={'candidate_deployment':'candidate','baseline_deployment':'baseline'},attempt=Path(temp),spec={'gates':{'schema_validity':1,'manual_correctness':.75,'manual_answer_support':.75},'latency_budget_ms':30000},dependency=lambda *args:{'model_identity':identity,'deployment_snapshot':{}},previous=lambda n:previous)
+            run=SimpleNamespace(config={'candidate_deployment':'candidate','baseline_deployment':'baseline'},attempt=Path(temp),spec={'request_timeout_ms':180000,'gates':{'schema_validity':1,'manual_correctness':.75,'manual_answer_support':.75},'latency_budget_ms':30000},dependency=lambda *args:{'model_identity':identity,'deployment_snapshot':{'request_timeout_ms':180000}},previous=lambda n:previous)
             azure=Mock(); azure.track.return_value={'mlflow_run_id':'real-run-reference'}; model=SimpleNamespace(tags={'training':'retained'}); azure.ml.models.get.return_value=model
-            with patch.object(demos,'Azure',return_value=azure),patch.object(demos,'deployment_snapshot',return_value={}),patch.object(demos,'monitor_snapshot',return_value={'snapshots':[]}),patch.object(demos,'require_monitor_coverage'),patch.object(demos,'manual_review',return_value={'rows':rows}):
+            with patch.object(demos,'Azure',return_value=azure),patch.object(demos,'deployment_snapshot',return_value={'request_timeout_ms':180000}),patch.object(demos,'monitor_snapshot',return_value={'snapshots':[]}),patch.object(demos,'require_monitor_coverage'),patch.object(demos,'manual_review',return_value={'rows':[{**r,'variant':v} for v in ('baseline','candidate') for r in rows]}):
                 result=demos.endpoint_test(run,3)
             self.assertEqual(result['release_decision'],'PASS')
             azure.ml.models.get.assert_called_once_with(name='exact-model',version='17')
@@ -143,29 +144,29 @@ class OutlineRegressionTests(unittest.TestCase):
             self.assertEqual(model.tags['frozen_release_sha256'],'frozen-hash')
 
     def test_missing_utilization_blocks_final_gate_without_replaying_workload(self):
-        run=SimpleNamespace(config={'candidate_deployment':'candidate','baseline_deployment':'baseline'},dependency=lambda *args:{'model_identity':{},'deployment_snapshot':{}},previous=lambda n:{'final_test':{'rows':[]}})
-        with patch.object(demos,'deployment_snapshot',return_value={}),patch.object(demos,'monitor_snapshot',return_value={'snapshots':[]}),patch.object(demos,'endpoint_resource',return_value='/offline'),patch.object(demos,'endpoint_workload') as workload:
+        run=SimpleNamespace(spec={'request_timeout_ms':180000},config={'candidate_deployment':'candidate','baseline_deployment':'baseline'},dependency=lambda *args:{'model_identity':{},'deployment_snapshot':{'request_timeout_ms':180000}},previous=lambda n:{'final_test':{'rows':[],'window_end':'END','baseline_comparison':{'window_start':'START'}}})
+        with patch.object(demos,'deployment_snapshot',return_value={'request_timeout_ms':180000}),patch.object(demos,'monitor_snapshot',return_value={'snapshots':[]}),patch.object(demos,'endpoint_resource',return_value='/offline'),patch.object(demos,'endpoint_workload') as workload:
             with self.assertRaises(core.Hold): demos.endpoint_test(run,3)
             workload.assert_not_called()
 
     def test_demo_inspects_prepared_alert_and_rejects_mismatched_rule(self):
         config={'subscription_id':'s','resource_group':'rg','workspace':'w','endpoint':'ai300-offline','baseline_deployment':'baseline','candidate_deployment':'candidate','monitor_action_group_id':'action'}
         frozen={'model_identity':{'id':'candidate'},'baseline_model_identity':{'id':'baseline'},'deployment_snapshot':{},'baseline_deployment_snapshot':{},'max_new_tokens':64}
-        run=SimpleNamespace(config=config,spec={'rollback_test':{'enabled':False},'latency_budget_ms':30000},state={'run_id':'OFFLINE','resources':{}},save=lambda:None,raw=lambda *args:None,dependency=lambda *args:{'release_decision':'PASS','frozen_release':frozen})
-        azure=Mock(); azure.run=run; azure.c=config
+        run=SimpleNamespace(config=config,spec={'rollback_test':{'enabled':False},'latency_budget_ms':30000},state={'run_id':'OFFLINE','resources':{},'canary_started_at':'START','canary_finished_at':'END'},save=lambda:None,raw=lambda *args:None,dependency=lambda *args:{'release_decision':'PASS','frozen_release':frozen})
+        azure=Mock(); azure.run=run; azure.c=config; azure.arm.return_value={'tags':{'course':'ai300','run_id':'OFFLINE'}}
         demos.prepare_canary_alert(azure)
         prepared=copy.deepcopy(azure.arm.call_args.args[2]); azure.arm.reset_mock(); azure.arm.return_value=prepared
         azure.invoke.return_value=({'deployment':'baseline','model_identity':{'id':'baseline'}},1)
-        with patch.object(demos,'Azure',return_value=azure),patch.object(demos,'deployment_snapshot',return_value={}),patch.object(demos,'course_endpoint'),patch.object(demos,'endpoint_payload',return_value={}),patch.object(demos,'endpoint_workload',return_value={}),patch.object(demos,'monitor_snapshot',return_value={'snapshots':[]}):
-            demos._canary_step(run,1)
+        with patch.object(demos,'Azure',return_value=azure),patch.object(demos,'deployment_snapshot',return_value={}),patch.object(demos,'course_endpoint'),patch.object(demos,'endpoint_payload',return_value={}),patch.object(demos,'endpoint_workload',return_value={}),patch.object(demos,'require_monitor_coverage'),patch.object(demos,'monitor_snapshot',return_value={'snapshots':[]}):
+            demos._canary_step(run,2)
             self.assertEqual([c.args[0] for c in azure.arm.call_args_list],['GET'])
             mutations=[('enabled',False),('scopes',['/wrong']),('actions',[{'actionGroupId':'wrong'}])]
             for field,value in mutations:
                 azure.arm.return_value=copy.deepcopy(prepared); azure.arm.return_value['properties'][field]=value
-                with self.subTest(field=field),self.assertRaises(core.Hold): demos._canary_step(run,1)
+                with self.subTest(field=field),self.assertRaises(core.Hold): demos._canary_step(run,2)
             for field,value in [('metricName','WrongMetric'),('threshold',1),('dimensions',[{'name':'deployment','operator':'Include','values':['wrong']}])]:
                 azure.arm.return_value=copy.deepcopy(prepared); azure.arm.return_value['properties']['criteria']['allOf'][0][field]=value
-                with self.subTest(field=field),self.assertRaises(core.Hold): demos._canary_step(run,1)
+                with self.subTest(field=field),self.assertRaises(core.Hold): demos._canary_step(run,2)
             self.assertTrue(all(c.args[0]=='GET' for c in azure.arm.call_args_list))
 
 if __name__=='__main__': unittest.main()

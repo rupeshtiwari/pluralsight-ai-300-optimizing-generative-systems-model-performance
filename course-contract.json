@@ -55,7 +55,7 @@
       "stem": "m1-demo1",
       "module": 1,
       "clip": 2,
-      "title": "Demo: Tune chunks and similarity cutoffs in Azure AI Search",
+      "title": "Demo: Tune chunk sizes and similarity cutoffs on Azure AI Search results",
       "folder": "module1/m1-c2",
       "before_branch": null,
       "start_branch": "m1-demo1-after",
@@ -67,7 +67,7 @@
       "steps": [
         {
           "n": 1,
-          "title": "Query one Azure AI Search Free-tier index with a chunk_size pre-filter to select 64-, 128-, or 192-token chunks of the same corpus, encoded with all-MiniLM-L6-v2.",
+          "title": "Query one Azure AI Search Free-tier index with a chunk_size pre-filter to select 64-, 128-, or 192-token chunks of the same corpus, encoded with all-MiniLM-L6-v2",
           "command": "./module1/m1-c2/scripts/lab-step.sh 1",
           "source": "ai300/demos.py:retrieval_chunks",
           "expected_fields": [
@@ -79,7 +79,7 @@
         },
         {
           "n": 2,
-          "title": "Vary vector candidate depth and apply a cosine cutoff in the Python client after converting a pure single-vector search score; inspect retained and rejected results.",
+          "title": "Vary vector candidate depth, convert single-vector query scores back to cosine similarity in the Python client, and apply a cutoff; inspect retained and rejected results",
           "command": "./module1/m1-c2/scripts/lab-step.sh 2",
           "source": "ai300/demos.py:retrieval_chunks",
           "expected_fields": [
@@ -91,13 +91,14 @@
         },
         {
           "n": 3,
-          "title": "Compare Recall@k, boundary failures, and latency while changing one control at a time; retain the configuration that supplies useful evidence.",
+          "title": "Compare Recall@k, boundary failures, and latency while changing one control at a time; keep the configuration with the best recall within the latency budget",
           "command": "./module1/m1-c2/scripts/lab-step.sh 3",
           "source": "ai300/demos.py:retrieval_chunks",
           "expected_fields": [
             "comparison",
             "selected_variant",
-            "selection_rule"
+            "selected_settings",
+            "latency_budget_ms"
           ]
         }
       ],
@@ -154,7 +155,7 @@
       "steps": [
         {
           "n": 1,
-          "title": "Send text and vector queries together to Azure AI Search; compare its reciprocal rank fusion results with separate keyword and vector searches.",
+          "title": "Send text and vector queries together to Azure AI Search; compare its reciprocal rank fusion results with separate keyword and vector searches",
           "command": "./module1/m1-c3/scripts/lab-step.sh 1",
           "source": "ai300/demos.py:hybrid_search",
           "expected_fields": [
@@ -165,7 +166,7 @@
         },
         {
           "n": 2,
-          "title": "Vary vector weight and candidate depth, then enable semantic reranking with 50 vector candidates and inspect search and reranker scores separately.",
+          "title": "Vary vector weight and candidate depth, then enable semantic reranking with 50 vector candidates and inspect search and reranker scores separately",
           "command": "./module1/m1-c3/scripts/lab-step.sh 2",
           "source": "ai300/demos.py:hybrid_search",
           "expected_fields": [
@@ -176,7 +177,7 @@
         },
         {
           "n": 3,
-          "title": "Compare exact identifiers and paraphrased questions on the same validation set; keep relevance gains without hiding query-type regressions.",
+          "title": "Compare exact-identifier and paraphrased questions on the same validation set; accept a relevance gain only when no query type regresses",
           "command": "./module1/m1-c3/scripts/lab-step.sh 3",
           "source": "ai300/demos.py:hybrid_search",
           "expected_fields": [
@@ -237,7 +238,7 @@
       "steps": [
         {
           "n": 1,
-          "title": "Run the Python experiment runner against two configurations of the same Azure AI Search index and the same gpt-5.6-luna deployment in Microsoft Foundry, holding the prompt and generation settings fixed.",
+          "title": "Run the Python experiment runner against two configurations of the same Azure AI Search index and the same gpt-5.6-luna deployment in Microsoft Foundry, holding the prompt and generation settings fixed",
           "command": "./module1/m1-c5/scripts/lab-step.sh 1",
           "source": "ai300/demos.py:rag_ab",
           "expected_fields": [
@@ -249,7 +250,7 @@
         },
         {
           "n": 2,
-          "title": "Compare Recall@k, nDCG@k, manually reviewed answer support, and latency using real retrieval and generated responses; inspect a response against its source and check for regressions.",
+          "title": "Compare Recall@k, nDCG@k, manually reviewed answer support, and latency; inspect a response against its source and check for regressions",
           "command": "./module1/m1-c5/scripts/lab-step.sh 2",
           "source": "ai300/demos.py:rag_ab",
           "expected_fields": [
@@ -261,7 +262,7 @@
         },
         {
           "n": 3,
-          "title": "Assign synthetic sessions consistently to A or B, retain exposure and outcome logs in Azure ML with MLflow, and analyze the declared primary metric and stop rule.",
+          "title": "Assign synthetic sessions consistently to A or B, log exposures and outcomes to Azure ML with MLflow, and check the primary metric, declared before the run, against its stop rule",
           "command": "./module1/m1-c5/scripts/lab-step.sh 3",
           "source": "ai300/demos.py:rag_ab",
           "expected_fields": [
@@ -332,7 +333,7 @@
       "steps": [
         {
           "n": 1,
-          "title": "Configure a Sentence Transformers contrastive training script with reviewed positive pairs and hard negatives, then submit an Azure ML CPU command job.",
+          "title": "Configure a Sentence Transformers contrastive training script for the selected bge-small-en-v1.5 model with reviewed positive pairs and hard negatives, then submit an Azure ML CPU command job",
           "command": "./module2/m2-c2/scripts/lab-step.sh 1",
           "source": "ai300/demos.py:embedding_train",
           "expected_fields": [
@@ -345,7 +346,7 @@
         },
         {
           "n": 2,
-          "title": "Inspect a completed job with matching code, environment, and data versions; select its checkpoint from validation metrics and retain the job output.",
+          "title": "Inspect the completed job and confirm its code, environment, and data versions; select the checkpoint with the best validation metrics and keep the job output",
           "command": "./module2/m2-c2/scripts/lab-step.sh 2",
           "source": "ai300/demos.py:embedding_train",
           "expected_fields": [
@@ -357,7 +358,7 @@
         },
         {
           "n": 3,
-          "title": "Encode corpus and queries with the selected checkpoint; populate its dedicated vector field in the same index, filter to the same chunk_size, and compare held-out relevance with the baseline fields.",
+          "title": "Encode corpus and queries with the selected checkpoint; populate its dedicated vector field in the same index, filter to the same chunk_size, and keep the tuned field only if its held-out relevance beats both the all-MiniLM-L6-v2 and base bge-small-en-v1.5 fields",
           "command": "./module2/m2-c2/scripts/lab-step.sh 3",
           "source": "ai300/demos.py:embedding_train",
           "expected_fields": [
@@ -421,7 +422,7 @@
       "steps": [
         {
           "n": 1,
-          "title": "Call the gpt-5.6-luna deployment in Microsoft Foundry to generate support-response examples from training-source documents, retaining source, prompt, and generator versions.",
+          "title": "Call the gpt-5.6-luna deployment in Microsoft Foundry to generate support-response examples from training-source documents, logging source, prompt, and generator versions",
           "command": "./module2/m2-c4/scripts/lab-step.sh 1",
           "source": "ai300/demos.py:synthetic_data",
           "expected_fields": [
@@ -432,7 +433,7 @@
         },
         {
           "n": 2,
-          "title": "Check JSONL structure, duplicate prompts, source references, and split leakage with Python; manually accept or reject examples by checking their claims against the source.",
+          "title": "Check JSONL structure, duplicate prompts, source references, and split leakage with Python; manually accept or reject examples by checking their claims against the source",
           "command": "./module2/m2-c4/scripts/lab-step.sh 2",
           "source": "ai300/demos.py:synthetic_data",
           "expected_fields": [
@@ -444,7 +445,7 @@
         },
         {
           "n": 3,
-          "title": "Register accepted examples, rejection reasons, hashes, and separate validation and test files as versioned Azure ML data assets.",
+          "title": "Register accepted examples, rejection reasons, hashes, and separate validation and test files as versioned Azure ML data assets",
           "command": "./module2/m2-c4/scripts/lab-step.sh 3",
           "source": "ai300/demos.py:synthetic_data",
           "expected_fields": [
@@ -507,7 +508,7 @@
       "steps": [
         {
           "n": 1,
-          "title": "Configure Qwen3-0.6B supervised training with Transformers and PEFT, choosing LoRA rank, target layers, learning rate, batch size, and response-only loss.",
+          "title": "Configure Qwen3-0.6B supervised training with Transformers and PEFT, choosing LoRA rank, target modules, learning rate, batch size, and response-only loss",
           "command": "./module2/m2-c5/scripts/lab-step.sh 1",
           "source": "ai300/demos.py:lora_train",
           "expected_fields": [
@@ -518,7 +519,7 @@
         },
         {
           "n": 2,
-          "title": "Submit the CPU command job and inspect a completed run with matching inputs; track training and validation loss in Azure ML through MLflow.",
+          "title": "Submit the CPU command job, then track training and validation loss for the completed run in Azure ML through MLflow",
           "command": "./module2/m2-c5/scripts/lab-step.sh 2",
           "source": "ai300/demos.py:lora_train",
           "expected_fields": [
@@ -530,7 +531,7 @@
         },
         {
           "n": 3,
-          "title": "Diagnose divergence between training and validation loss, then inspect base and adapted validation responses for memorization and task errors before further tuning.",
+          "title": "Diagnose divergence between training and validation loss, then inspect base and adapted validation responses for memorization and task errors before further tuning",
           "command": "./module2/m2-c5/scripts/lab-step.sh 3",
           "source": "ai300/demos.py:lora_train",
           "expected_fields": [
@@ -585,7 +586,7 @@
       "stem": "m2-demo4",
       "module": 2,
       "clip": 6,
-      "title": "Demo: Tune LoRA rank and select a checkpoint in Azure ML",
+      "title": "Demo: Tune LoRA rank and select checkpoints in Azure ML",
       "folder": "module2/m2-c6",
       "before_branch": null,
       "start_branch": "m2-demo4-after",
@@ -598,7 +599,7 @@
       "steps": [
         {
           "n": 1,
-          "title": "Configure a second CPU command job with a different LoRA rank and learning rate; keep the base model, data splits, seed, target layers, and training budget fixed.",
+          "title": "Configure a second CPU command job that changes only the LoRA rank, with the alpha-to-rank ratio, base model, data splits, seed, learning rate, target modules, and training budget held fixed",
           "command": "./module2/m2-c6/scripts/lab-step.sh 1",
           "source": "ai300/demos.py:lora_select",
           "expected_fields": [
@@ -609,7 +610,7 @@
         },
         {
           "n": 2,
-          "title": "Compare both genuine completed runs in MLflow using validation loss, elapsed time, and task outputs; interpret the combined configuration change rather than attributing the result to rank alone.",
+          "title": "Compare both completed runs in MLflow using validation loss, elapsed time, and task outputs, and judge whether the higher rank earns its extra CPU cost",
           "command": "./module2/m2-c6/scripts/lab-step.sh 2",
           "source": "ai300/demos.py:lora_select",
           "expected_fields": [
@@ -620,7 +621,7 @@
         },
         {
           "n": 3,
-          "title": "Select a checkpoint using validation quality and CPU cost, then save its adapter with the exact base-model revision, tokenizer, data, and environment versions.",
+          "title": "Shortlist the best checkpoint from each run by validation loss, then save each adapter with the exact base-model revision, tokenizer, data, and environment versions",
           "command": "./module2/m2-c6/scripts/lab-step.sh 3",
           "source": "ai300/demos.py:lora_select",
           "expected_fields": [
@@ -685,7 +686,7 @@
       "steps": [
         {
           "n": 1,
-          "title": "Submit an Azure ML evaluation job for the base model and selected adapters using the same domain and general-capability validation questions and generation settings.",
+          "title": "Submit an Azure ML evaluation job for the base model and both shortlisted adapters using the same domain and general-capability validation questions, retrieved context from the adopted search configuration, and generation settings",
           "command": "./module3/m3-c2/scripts/lab-step.sh 1",
           "source": "ai300/demos.py:model_evaluate",
           "expected_fields": [
@@ -696,7 +697,7 @@
         },
         {
           "n": 2,
-          "title": "Inspect the completed job in MLflow, comparing task correctness, answer support, and schema validity by query type and reading concrete failures.",
+          "title": "Inspect the completed job in MLflow, comparing task correctness, answer support, and schema validity by query type and reading concrete failures",
           "command": "./module3/m3-c2/scripts/lab-step.sh 2",
           "source": "ai300/demos.py:model_evaluate",
           "expected_fields": [
@@ -708,7 +709,7 @@
         },
         {
           "n": 3,
-          "title": "Select the candidate against the validation gates and retain the job, dataset, configuration, and per-example evidence.",
+          "title": "Select the candidate against the validation gates and record the job, dataset, configuration, and per-example results",
           "command": "./module3/m3-c2/scripts/lab-step.sh 3",
           "source": "ai300/demos.py:model_evaluate",
           "expected_fields": [
@@ -776,7 +777,7 @@
       "steps": [
         {
           "n": 1,
-          "title": "Register a custom model asset containing the base-model revision, adapter, and tokenizer, linked to training data and validation evidence.",
+          "title": "Register a custom model asset containing the base-model revision, adapter, and tokenizer, linked to training data and validation evidence",
           "command": "./module3/m3-c3/scripts/lab-step.sh 1",
           "source": "ai300/demos.py:model_deploy",
           "expected_fields": [
@@ -787,7 +788,7 @@
         },
         {
           "n": 2,
-          "title": "Deploy the candidate with versioned scoring code and an Azure ML CPU inference environment to an existing managed online endpoint at zero traffic.",
+          "title": "Deploy the candidate with versioned scoring code and an Azure ML CPU inference environment to an existing managed online endpoint at zero traffic",
           "command": "./module3/m3-c3/scripts/lab-step.sh 2",
           "source": "ai300/demos.py:model_deploy",
           "expected_fields": [
@@ -800,7 +801,7 @@
         },
         {
           "n": 3,
-          "title": "Inspect the completed deployment and invoke it directly; verify the model identity and smoke-test responses while the baseline deployment continues serving.",
+          "title": "Inspect the completed deployment and invoke it directly; verify the model identity and smoke-test responses while the baseline deployment continues serving",
           "command": "./module3/m3-c3/scripts/lab-step.sh 3",
           "source": "ai300/demos.py:model_deploy",
           "expected_fields": [
@@ -866,42 +867,37 @@
       "steps": [
         {
           "n": 1,
-          "title": "Benchmark the candidate deployment directly with a fixed validation workload; compare output-length limits using latency, output tokens, and answer quality.",
+          "title": "Benchmark the candidate deployment directly with a fixed validation workload; compare output-length limits using latency, output tokens, CPU and memory utilization, and answer quality",
           "command": "./module3/m3-c4/scripts/lab-step.sh 1",
           "source": "ai300/demos.py:endpoint_test",
           "expected_fields": [
             "benchmarks",
-            "selected_max_new_tokens",
-            "selection_rule",
-            "manual_semantic_review",
-            "semantic_quality_by_limit"
+            "utilization_evidence",
+            "selected_max_new_tokens"
           ]
         },
         {
           "n": 2,
-          "title": "Freeze the selected model, environment, and request settings, then run the untouched domain and general-capability test set against that deployment.",
+          "title": "Freeze the selected model, environment, and inference settings (output-length limit and request timeout), then run the untouched domain and general-capability test set against the candidate and baseline deployments",
           "command": "./module3/m3-c4/scripts/lab-step.sh 2",
           "source": "ai300/demos.py:endpoint_test",
           "expected_fields": [
             "frozen_release",
             "frozen_release_sha256",
             "final_test",
-            "test_ledger",
             "manual_review_path"
           ]
         },
         {
           "n": 3,
-          "title": "Retain the final test report and release configuration with the model version; reject a failed gate and require a new untouched test set after further tuning.",
+          "title": "Store the final test report and release configuration with the model version in Azure ML",
           "command": "./module3/m3-c4/scripts/lab-step.sh 3",
           "source": "ai300/demos.py:endpoint_test",
           "expected_fields": [
             "release_decision",
             "gate_checks",
-            "frozen_release",
-            "mlflow_run_id",
-            "manual_semantic_review",
-            "semantic_quality_summary"
+            "baseline_comparison",
+            "mlflow_run_id"
           ]
         }
       ],
@@ -947,7 +943,7 @@
       "stem": "m3-demo4",
       "module": 3,
       "clip": 5,
-      "title": "Demo: Monitor Azure traffic and verify rollback",
+      "title": "Demo: Monitor canary traffic and verify rollback in Azure ML",
       "folder": "module3/m3-c5",
       "before_branch": null,
       "start_branch": "m3-demo4-after",
@@ -960,62 +956,58 @@
       "steps": [
         {
           "n": 1,
-          "title": "Configure an Azure Monitor alert on Request Latency P95; inspect latency by deployment, Requests Per Minute by deployment and status-code class, and each deployment\u2019s CPU and memory utilization.",
+          "title": "Allocate 90 percent of managed endpoint traffic to the baseline and 10 percent to the candidate; send enough labeled test traffic to meet each gate’s minimum sample size, and record which deployment served each response",
           "command": "./module3/m3-c5/scripts/lab-step.sh 1",
+          "source": "ai300/demos.py:canary_rollback",
+          "expected_fields": [
+            "traffic",
+            "rows",
+            "sample_counts",
+            "manual_review_path"
+          ]
+        },
+        {
+          "n": 2,
+          "title": "Inspect Request Latency P95 split by deployment, Requests Per Minute split by deployment and status-code class, and the prepared Azure Monitor alert rule on Request Latency P95",
+          "command": "./module3/m3-c5/scripts/lab-step.sh 2",
           "source": "ai300/demos.py:canary_rollback",
           "expected_fields": [
             "alert_id",
             "alert",
             "metric_snapshot",
-            "telemetry_status",
-            "predeclared_trigger"
-          ]
-        },
-        {
-          "n": 2,
-          "title": "Allocate 90 percent of managed endpoint traffic to the baseline and 10 percent to the candidate; send labeled test traffic and retain deployment identities in the evidence.",
-          "command": "./module3/m3-c5/scripts/lab-step.sh 2",
-          "source": "ai300/demos.py:canary_rollback",
-          "expected_fields": [
-            "traffic",
-            "rows",
-            "by_deployment",
-            "population"
+            "telemetry_status"
           ]
         },
         {
           "n": 3,
-          "title": "Inspect a real candidate gate failure from a predeclared, controlled rollback test and stop promotion; keep the baseline\u2019s normal gate unchanged and distinguish the exercise from production-user outcomes.",
+          "title": "Check the candidate’s canary responses and serving metrics against the predeclared gates, and stop promotion on any failure",
           "command": "./module3/m3-c5/scripts/lab-step.sh 3",
           "source": "ai300/demos.py:canary_rollback",
           "expected_fields": [
-            "promotion",
+            "decision",
             "failed_gates",
-            "metric_snapshot",
-            "predeclared_trigger",
-            "observed_candidate_p95_ms",
-            "manual_quality_status"
+            "gate_checks",
+            "manual_semantic_review"
           ]
         },
         {
           "n": 4,
-          "title": "Restore 100 percent traffic to the baseline, then verify the routed model identity, responses, and recovered operational behavior.",
+          "title": "Exercise the rollback path by restoring 100 percent traffic to the baseline, then verify the routed model identity and responses before the promotion decision",
           "command": "./module3/m3-c5/scripts/lab-step.sh 4",
           "source": "ai300/demos.py:canary_rollback",
           "expected_fields": [
             "traffic",
-            "routed_model_identities",
+            "rollback_verified",
             "routed_responses",
-            "recovery_metrics",
-            "rollback_verified"
+            "recovery_metrics"
           ]
         }
       ],
       "expected_evidence": [
-        "Latency, request/status-class, CPU/memory metrics and Request Latency P95 alert",
-        "90/10 traffic configuration and labeled test responses with deployment identities",
-        "Real predeclared controlled candidate gate failure, unchanged normal baseline gate and stopped promotion",
-        "100/0 restored traffic with routed identity, response and recovery checks"
+        "90/10 routed identities and declared sample counts",
+        "Observed deployment/status metrics and prepared normal-threshold alert",
+        "Reviewed quality/resource/latency gate decision; no manufactured failure",
+        "100/0 restored baseline with routed identity and recovery proof"
       ],
       "authored_artifacts": [
         "config.local.json"

@@ -7,6 +7,19 @@
   "gates": {
     "schema_validity": 1.0,
     "manual_correctness": 0.75,
-    "manual_answer_support": 0.75
-  }
+    "manual_answer_support": 0.75,
+    "max_regression": 0.0
+  },
+  "minimum_by_query_type": {
+    "exact_identifier": 2,
+    "paraphrase": 2,
+    "general": 2
+  },
+  "resource_gates": {
+    "CpuUtilizationPercentage": 90,
+    "CpuMemoryUtilizationPercentage": 90
+  },
+  "request_timeout_ms": 180000,
+  "minimum_observation_seconds": 120,
+  "max_observation_requests": 120
 }

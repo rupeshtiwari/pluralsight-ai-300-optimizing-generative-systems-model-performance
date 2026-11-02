@@ -49,7 +49,7 @@ python -m ai300.setup freeze-models
 python -m ai300.setup register-environments --image "YOUR_APPROVED_CPU_IMAGE@sha256:YOUR_DIGEST"
 ```
 
-For `--image`, use Microsoft's CPU `azureml/openmpi4.1.0-ubuntu22.04` base image, listed in [AzureML-Containers](https://github.com/Azure/AzureML-Containers) and used for CPU managed deployments in [Microsoft's deployment guide](https://learn.microsoft.com/azure/machine-learning/how-to-deploy-managed-online-endpoints?view=azureml-api-2). Training and serving use separate conda environments on this CPU base; serving adds the pinned inference server. Availability is not proof that these two environments build successfully.
+For `--image`, use Microsoft's CPU `azureml/openmpi5.0-ubuntu24.04` base image, listed in [AzureML-Containers](https://github.com/Azure/AzureML-Containers) and used for CPU managed deployments in [Microsoft's deployment guide](https://learn.microsoft.com/azure/machine-learning/how-to-deploy-managed-online-endpoints?view=azureml-api-2). Training and serving use separate conda environments on this CPU base; serving adds the pinned inference server. Availability is not proof that these two environments build successfully.
 
 Resolve its current tag to an immutable registry digest without Docker:
 

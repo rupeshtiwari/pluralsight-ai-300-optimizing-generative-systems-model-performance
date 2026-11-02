@@ -1,129 +1,91 @@
-# Demo: Tune chunks and similarity cutoffs in Azure AI Search
+# Demo: Tune chunk sizes and similarity cutoffs on Azure AI Search results
 
-[Previous: course index](../../README.md) · [Course index](../../README.md) · [Next: Run hybrid search and semantic reranking in Azure](../m1-c3/README.md)
+[Course index](../../README.md) · [Setup](../../setup/README.md) · [Run guide](../../docs/run-demos.md)
 
-Module 1, clip 2 · Intermediate · Course video: pending publication.
+**Module 1 · Clip 2 · 5 minutes · CPU Azure lab**
 
-Source implementation is available. Actual Azure runtime has not been run in the source-editing environment; all values below are expected field contracts, not precollected results.
-
-## Your Scenario
-
-A support answer cites the right policy but omits its condition. Compare token windows and retained vector candidates before changing generation.
-
-Your success condition is a retained real Azure report for every step, including any rejected gate or missing evidence. A valid rejection is a decision; it is not a successful deployment or release.
-
-## Your Learning Goals
+## What you will learn
 
 - **TO1** — Optimize retrieval-augmented generation (RAG) performance and accuracy
 - **EO1a** — Optimize retrieval performance by tuning similarity thresholds, chunk sizes, and retrieval strategies
 
-## Start Your Lab
+You operate the support-assistant project and make a decision from real retained evidence. Source is supplied; offline tests are not successful Azure execution.
 
-Complete [one-time setup](../../setup/README.md). Open this repository in VS Code with an integrated terminal. All code and original source labels are supplied; your work is to configure the named controls, run the real operation and interpret its evidence.
+## Prerequisites and Starting State
 
-This exercise has no earlier demo dependency. Its own setup establishes the index or job from the supplied corpus and labels, using your configured Azure resources.
+Complete [the shared setup](../../setup/README.md), authenticate your permitted Azure identity, configure existing course-owned resources, and inspect the declared controls in [`configs/m1-demo1.json`](../../configs/m1-demo1.json). Preserve your own changes before switching branches.
 
-From the parent folder containing your clone, use the following setup. Commit or preserve your own changes before switching branches; do not discard them.
+## Open and Check
+
+From the cloned repository root:
 
 ```bash
-cd "pluralsight-ai-300-optimizing-generative-systems-model-performance"
 git switch m1-demo1-after
+# Activate .venv (Windows Git Bash: source .venv/Scripts/activate)
 source .venv/bin/activate
-./module1/m1-c2/scripts/preflight_check.sh
+./module1/m1-c2/scripts/preflight_check.sh --offline
+./module1/m1-c2/scripts/preflight_check.sh --live
 ./module1/m1-c2/scripts/lab-up.sh
 ```
 
-Read [`configs/m1-demo1.json`](../../configs/m1-demo1.json) and [`ai300/azure.py`](../../ai300/azure.py), [`data/corpus.jsonl`](../../data/corpus.jsonl), [`data/queries.jsonl`](../../data/queries.jsonl). The shared implementation is [`retrieval_chunks`](../../ai300/demos.py). Save configuration edits before `lab-up`; source/config changes invalidate an active run. The approved chunk-size list, semantic candidate depth 50, required manual review and zero-traffic deployment are checked contract constants where applicable; edits that violate them return HOLD. Chunk overlap is consumed by the tokenizer loop, while the named sweep settings are visible in the demo function.
+The offline command needs only Python standard-library source. Live checks use your actual resources; provisioning/inference/jobs can incur charges. `lab-up` prints a unique `evidence/m1-demo1/<UTC-uuid>/` folder. Stay at the repo root.
 
-`lab-up` prints your unique `evidence/m1-demo1/<UTC-uuid>/` folder. It initializes evidence; it does not claim Azure success. Keep the same terminal at the repository root for all steps. On Windows Git Bash, activate with `source .venv/Scripts/activate` instead of `.venv/bin/activate`.
+## Source to Inspect
 
-## Your Three Steps
+Open `ai300/demos.py:retrieval_chunks` in VS Code (file and named function). Related source: `ai300/demos.py`, `ai300/core.py`, `ai300/azure.py`, `configs/m1-demo1.json`, `data/corpus.jsonl`, `data/queries.jsonl`.
 
-| Step | Action |
-|---|---|
-| [1](#step-1) | Query one Azure AI Search Free-tier index with a chunk_size pre-filter to select 64-, 128-, or 192-token chunks of the same corpus, encoded with all-MiniLM-L6-v2. |
-| [2](#step-2) | Vary vector candidate depth and apply a cosine cutoff in the Python client after converting a pure single-vector search score; inspect retained and rejected results. |
-| [3](#step-3) | Compare Recall@k, boundary failures, and latency while changing one control at a time; retain the configuration that supplies useful evidence. |
-
+## Numbered Steps
 
 <a id="step-1"></a>
 
-### Step 1: Query one Azure AI Search Free-tier index with a chunk_size pre-filter to select 64-, 128-, or 192-token chunks of the same corpus, encoded with all-MiniLM-L6-v2.
-
-**Learning Goal:** Query one Azure AI Search Free-tier index with a chunk_size pre-filter to select 64-, 128-, or 192-token chunks of the same corpus, encoded with all-MiniLM-L6-v2.
-
-**Demo Workspace:** VS Code, repository root; inspect `retrieval_chunks` in `ai300/demos.py` and the step's configuration before running.
-
-**Run Command:**
+### Step 1 — Query one Azure AI Search Free-tier index with a chunk_size pre-filter to select 64-, 128-, or 192-token chunks of the same corpus, encoded with all-MiniLM-L6-v2
 
 ```bash
 ./module1/m1-c2/scripts/lab-step.sh 1
 ```
 
-**Result Location:** The same terminal prints observed JSON and the exact report path. Open `step-1-<attempt>/report.json` in the run folder, with `raw/` beside it. A failed attempt instead retains `failure.json`; do not treat its absence of a report as success.
+**Result:** the terminal prints the exact retained report path. Open `step-1-<attempt>/report.json` in your run folder; inspect `raw/` beside it. Expected field names: `indexed_chunks`, `rows`, `variants`, `chunk_size`. These are contracts, not promised values.
 
-**Expected Results:** `indexed_chunks`, `rows`, `variants`, `chunk_size`. These are field names; counts, timings, IDs, quality values and gate decisions come from your actual run.
-
-**Interpret Results:** Compare the same policy sources across 64, 128 and 192 MiniLM tokenizer tokens, with fixed 16-token overlap. A higher source recall can still hide a boundary failure.
-
-**If it fails:** Read the retained error and raw response. Fix missing prerequisites or wait for the named asynchronous operation; repeat only the failed step. Never replace output with a fixture or expected success. A quality rejection requires the corrective action in the report.
-
+**Decision and failure action:** The selection must fit the declared p95 latency budget. Chunk size, candidate depth and cutoff comparisons retain their exact settings; a rejected cutoff cannot be disguised as server-side filtering. Missing permissions, incomplete jobs, unfilled manual reviews or delayed telemetry produce HOLD. Correct the named prerequisite and retry only the incomplete step. Completed steps are immutable; preserve every failed attempt.
 <a id="step-2"></a>
 
-### Step 2: Vary vector candidate depth and apply a cosine cutoff in the Python client after converting a pure single-vector search score; inspect retained and rejected results.
-
-**Learning Goal:** Vary vector candidate depth and apply a cosine cutoff in the Python client after converting a pure single-vector search score; inspect retained and rejected results.
-
-**Demo Workspace:** VS Code, repository root; inspect `retrieval_chunks` in `ai300/demos.py` and the step's configuration before running.
-
-**Run Command:**
+### Step 2 — Vary vector candidate depth, convert single-vector query scores back to cosine similarity in the Python client, and apply a cutoff; inspect retained and rejected results
 
 ```bash
 ./module1/m1-c2/scripts/lab-step.sh 2
 ```
 
-**Result Location:** The same terminal prints observed JSON and the exact report path. Open `step-2-<attempt>/report.json` in the run folder, with `raw/` beside it. A failed attempt instead retains `failure.json`; do not treat its absence of a report as success.
+**Result:** the terminal prints the exact retained report path. Open `step-2-<attempt>/report.json` in your run folder; inspect `raw/` beside it. Expected field names: `retained`, `rejected`, `cosine_similarity`, `settings`. These are contracts, not promised values.
 
-**Expected Results:** `retained`, `rejected`, `cosine_similarity`, `settings`. These are field names; counts, timings, IDs, quality values and gate decisions come from your actual run.
-
-**Interpret Results:** Depth changes the server candidate pool; the client cutoff only discards returned pure-vector candidates. Do not transfer this cutoff to RRF or semantic scores.
-
-**If it fails:** Read the retained error and raw response. Fix missing prerequisites or wait for the named asynchronous operation; repeat only the failed step. Never replace output with a fixture or expected success. A quality rejection requires the corrective action in the report.
-
+**Decision and failure action:** The selection must fit the declared p95 latency budget. Chunk size, candidate depth and cutoff comparisons retain their exact settings; a rejected cutoff cannot be disguised as server-side filtering. Missing permissions, incomplete jobs, unfilled manual reviews or delayed telemetry produce HOLD. Correct the named prerequisite and retry only the incomplete step. Completed steps are immutable; preserve every failed attempt.
 <a id="step-3"></a>
 
-### Step 3: Compare Recall@k, boundary failures, and latency while changing one control at a time; retain the configuration that supplies useful evidence.
-
-**Learning Goal:** Compare Recall@k, boundary failures, and latency while changing one control at a time; retain the configuration that supplies useful evidence.
-
-**Demo Workspace:** VS Code, repository root; inspect `retrieval_chunks` in `ai300/demos.py` and the step's configuration before running.
-
-**Run Command:**
+### Step 3 — Compare Recall@k, boundary failures, and latency while changing one control at a time; keep the configuration with the best recall within the latency budget
 
 ```bash
 ./module1/m1-c2/scripts/lab-step.sh 3
 ```
 
-**Result Location:** The same terminal prints observed JSON and the exact report path. Open `step-3-<attempt>/report.json` in the run folder, with `raw/` beside it. A failed attempt instead retains `failure.json`; do not treat its absence of a report as success.
+**Result:** the terminal prints the exact retained report path. Open `step-3-<attempt>/report.json` in your run folder; inspect `raw/` beside it. Expected field names: `comparison`, `selected_variant`, `selected_settings`, `latency_budget_ms`. These are contracts, not promised values.
 
-**Expected Results:** `comparison`, `selected_variant`, `selection_rule`. These are field names; counts, timings, IDs, quality values and gate decisions come from your actual run.
+**Decision and failure action:** The selection must fit the declared p95 latency budget. Chunk size, candidate depth and cutoff comparisons retain their exact settings; a rejected cutoff cannot be disguised as server-side filtering. Missing permissions, incomplete jobs, unfilled manual reviews or delayed telemetry produce HOLD. Correct the named prerequisite and retry only the incomplete step. Completed steps are immutable; preserve every failed attempt.
 
-**Interpret Results:** Read the boundary failures next to recall and latency. The selected setting is a small validation-set decision, not a proven global optimum.
+## Interpretation and Next Action
 
-**If it fails:** Read the retained error and raw response. Fix missing prerequisites or wait for the named asynchronous operation; repeat only the failed step. Never replace output with a fixture or expected success. A quality rejection requires the corrective action in the report.
+The selection must fit the declared p95 latency budget. Chunk size, candidate depth and cutoff comparisons retain their exact settings; a rejected cutoff cannot be disguised as server-side filtering.
 
-## What You Achieved
+A source check, completed job, passing validation gate, frozen final test and rollback proof are distinct states. If a gate rejects a candidate, retain the baseline and inspect individual failures. Canary step3 can stop promotion; still run step4 to exercise baseline restoration.
 
-A support answer cites the right policy but omits its condition. Compare token windows and retained vector candidates before changing generation. You now have the actual inputs, response fields and decision record needed to explain that change. Verify every numbered report includes the current run ID and inspect at least one underlying raw response or genuine completed job. The terminal report does not replace Azure portal/Studio inspection.
-
-## Finish Your Lab
+## Cleanup and Evidence Retention
 
 ```bash
 ./module1/m1-c2/scripts/lab-down.sh
 ```
 
-The [cleanup contract](../../setup/README.md#troubleshooting-and-cleanup) explains retained assets and billable resources. For a fully independent endpoint exercise, choose `cleanup.delete_endpoint=true` before `lab-up`; then use `restore-endpoint --from-run` for exact version restoration before continuation. Preserve evidence and the final-test consumption ledger. Verify cluster scale-down and resource removal in Azure.
+Cleanup uses the retained resource/config snapshot. It only deletes candidate deployments created by the owning run; it leaves unrelated/name-collision deployments in place. Keep dependency artifacts, manual reviews and consumed-test ledgers. Do not clean up a live prerequisite endpoint until its dependent exercises are complete; retained endpoints/storage can remain billable. See [cleanup options](../../setup/README.md#troubleshooting-and-cleanup).
 
-Compare your source with this exercise's `m1-demo1-after` reference using `git diff m1-demo1-after -- ai300 jobs serving configs data`; this does not move your checkout or overwrite your work. A matching tree does not prove matching cloud state.
+## What You Achieved
 
-[Previous: course index](../../README.md) · [Course index](../../README.md) · [Next: Run hybrid search and semantic reranking in Azure](../m1-c3/README.md)
+You followed the stated objective actions, retained actual response identities and made an evidence-based decision. Azure runtime is NOT RUN in this source revision; validate it in your own authorized lab.
+
+[Previous exercise](../../README.md) · [Next exercise](../../module1/m1-c3/README.md)

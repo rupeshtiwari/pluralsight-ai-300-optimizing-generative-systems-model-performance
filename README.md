@@ -36,6 +36,8 @@ flowchart TD
   G --> H["Azure Monitor and rollback"]
 ```
 
+[Open the complete run guide](docs/run-demos.md) for every demo command, dependency and manual-review checkpoint.
+
 ## Start once, then run an exercise
 
 Follow [setup/README.md](setup/README.md) for exact installation, configuration, identity and cleanup. Your changes are resource/model configuration and a manual synthetic-data review; implementation source is supplied for inspection and controlled parameter edits in VS Code.
@@ -54,17 +56,17 @@ The offline check needs no credentials. The live commands fail closed when depen
 
 | Demo | Module · clip | Operational reference |
 |---|---|---|
-| [Demo: Tune chunks and similarity cutoffs in Azure AI Search](module1/m1-c2/README.md) | 1 · 2 | `m1-demo1-after` |
+| [Demo: Tune chunk sizes and similarity cutoffs on Azure AI Search results](module1/m1-c2/README.md) | 1 · 2 | `m1-demo1-after` |
 | [Demo: Run hybrid search and semantic reranking in Azure](module1/m1-c3/README.md) | 1 · 3 | `m1-demo2-after` |
 | [Demo: Evaluate RAG variants with Azure services](module1/m1-c5/README.md) | 1 · 5 | `m1-demo3-after` |
 | [Demo: Fine-tune domain embeddings in Azure ML](module2/m2-c2/README.md) | 2 · 2 | `m2-demo1-after` |
 | [Demo: Generate and version synthetic data with Foundry](module2/m2-c4/README.md) | 2 · 4 | `m2-demo2-after` |
 | [Demo: Train a LoRA adapter in Azure ML](module2/m2-c5/README.md) | 2 · 5 | `m2-demo3-after` |
-| [Demo: Tune LoRA rank and select a checkpoint in Azure ML](module2/m2-c6/README.md) | 2 · 6 | `m2-demo4-after` |
+| [Demo: Tune LoRA rank and select checkpoints in Azure ML](module2/m2-c6/README.md) | 2 · 6 | `m2-demo4-after` |
 | [Demo: Evaluate fine-tuned candidates in Azure ML](module3/m3-c2/README.md) | 3 · 2 | `m3-demo1-after` |
 | [Demo: Deploy a versioned model to Azure ML](module3/m3-c3/README.md) | 3 · 3 | `m3-demo2-after` |
 | [Demo: Optimize and test the Azure model endpoint](module3/m3-c4/README.md) | 3 · 4 | `m3-demo3-after` |
-| [Demo: Monitor Azure traffic and verify rollback](module3/m3-c5/README.md) | 3 · 5 | `m3-demo4-after` |
+| [Demo: Monitor canary traffic and verify rollback in Azure ML](module3/m3-c5/README.md) | 3 · 5 | `m3-demo4-after` |
 
 ## Files and branches
 

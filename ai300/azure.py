@@ -65,11 +65,13 @@ class Azure:
         tokenizer=self.model('sentence-transformers/all-MiniLM-L6-v2').tokenizer
         chunks=[]
         for d in jsonl(ROOT/'data/corpus.jsonl'):
-            tokens=tokenizer.encode(d['text'],add_special_tokens=False)
+            encoded=tokenizer(d['text'],add_special_tokens=False,return_offsets_mapping=True)
+            tokens=encoded['input_ids']; offsets=encoded['offset_mapping']
+            require(len(tokens)==len(offsets),'Tokenizer must supply exact original-text offsets.')
             for size in self.run.spec.get('chunk_sizes',[64,128,192]):
                 for start in range(0,len(tokens),size-self.run.spec.get('overlap_tokens',16)):
                     part=tokens[start:start+size]
-                    chunks.append({'@search.action':'mergeOrUpload','id':f"{layout[:12]}-{d['source_id']}-{size}-{start}",'layout_version':layout,'source_id':d['source_id'],'source_group':d['source_group'],'split':d['split'],'title':d['title'],'content':tokenizer.decode(part),'chunk_size':size,'token_start':start,'token_end':start+len(part)})
+                    chunks.append({'@search.action':'mergeOrUpload','id':f"{layout[:12]}-{d['source_id']}-{size}-{start}",'layout_version':layout,'source_id':d['source_id'],'source_group':d['source_group'],'split':d['split'],'title':d['title'],'content':d['text'][offsets[start][0]:offsets[start+len(part)-1][1]],'chunk_size':size,'token_start':start,'token_end':start+len(part)})
         for field,name in [('mini_vector','sentence-transformers/all-MiniLM-L6-v2'),('bge_vector','BAAI/bge-small-en-v1.5')]:
             vectors=self.encode([x['content'] for x in chunks],name)
             for chunk,vector in zip(chunks,vectors): chunk[field]=vector
@@ -151,7 +153,7 @@ def resolve_environment(client,reference,definition):
     else:
         match=re.search(r'/environments/([^/]+)/versions/([^/]+)$',reference); require(match is not None,'Environment reference must be an exact registered version.'); name,version=match.groups()
     environment=client.environments.get(name=name,version=version)
-    require('@sha256:' in (environment.image or ''),'Environment image must be pinned by digest.')
+    require(re.fullmatch(r'mcr\.microsoft\.com/azureml/openmpi5\.0-ubuntu24\.04@sha256:[0-9a-f]{64}',environment.image or ''),'Environment must use the exact Ubuntu24.04 CPU image digest.')
     actual=environment.conda_file
     if isinstance(actual,str):
         # SDK readback can return serialized YAML. Never treat Azure strings as arbitrary local filenames.

@@ -1,3 +1,4 @@
 {
-  "semantic_candidates": 50
+  "semantic_candidates": 50,
+  "latency_budget_ms": 30000
 }
