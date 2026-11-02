@@ -31,23 +31,48 @@ def hybrid_search(run,n):
     if n==2:
         return sweep(a,{'hybrid-w1-k10':{'mode':'hybrid','weight':1.,'depth':10},'hybrid-w2-k10':{'mode':'hybrid','weight':2.,'depth':10},'hybrid-w2-k50':{'mode':'hybrid','weight':2.,'depth':run.spec['semantic_candidates']},'semantic-w2-k50':{'mode':'semantic','weight':2.,'depth':run.spec['semantic_candidates']}})
     baseline=run.previous(1)['variants']['hybrid']; variants=run.previous(2)['variants']; rows=run.previous(2)['rows']
-    regressions=[{'variant':name,'query_type':t,'recall_delta':v['by_query_type'][t]['recall_at_k']-baseline['by_query_type'][t]['recall_at_k']} for name,v in variants.items() for t in baseline['by_query_type'] if v['by_query_type'][t]['recall_at_k']<baseline['by_query_type'][t]['recall_at_k']]
+    regressions=[]
+    for name,metrics in variants.items():
+        for kind,reference in baseline['by_query_type'].items():
+            observed=metrics['by_query_type'].get(kind)
+            require(observed is not None,f'Missing query-type evidence: {name}/{kind}.')
+            deltas={metric:observed[metric]-reference[metric] for metric in ('recall_at_k','ndcg_at_k')}
+            if any(delta<0 for delta in deltas.values()):
+                regressions.append({'variant':name,'query_type':kind,'recall_delta':deltas['recall_at_k'],'ndcg_delta':deltas['ndcg_at_k'],'regressed_metrics':[metric for metric,delta in deltas.items() if delta<0]})
     eligible=[name for name,metrics in variants.items() if metrics['p95_latency_ms']<=run.spec['latency_budget_ms'] and not any(r['variant']==name for r in regressions) and metrics['ndcg_at_k']>baseline['ndcg_at_k']]
     winner=max(eligible,key=lambda name:variants[name]['ndcg_at_k']) if eligible else None
     settings={r['variant']:r['settings'] for r in rows}
     return {'baseline':baseline,'variants':variants,'query_type_regressions':regressions,'score_types':{'keyword':'BM25','vector':'transformed cosine','hybrid':'RRF','semantic':'RRF plus separate @search.rerankerScore'},'decision':'ADOPT' if winner else 'RETAIN_BASELINE','selected_variant':winner,'selected_settings':settings[winner] if winner else {'mode':'hybrid','depth':10},'latency_budget_ms':run.spec['latency_budget_ms'],'example_rows':rows[:2]}
 
+def ab_experiment_contract(run):
+    """Persist the predeclared experiment before the first retrieval or assignment."""
+    require(run.spec.get('primary_metric')=='manual_answer_support','Declare manual_answer_support as the primary metric before starting this experiment.')
+    require(run.spec.get('stop_rule')=='fixed_sessions_no_early_efficacy','Declare the fixed-session stop rule before starting this experiment.')
+    require(type(run.spec.get('sessions')) is int and run.spec['sessions']>0,'Declare a positive fixed session count.')
+    contract={'run_id':run.state['run_id'],'primary_metric':run.spec['primary_metric'],'stop_rule':f"fixed {run.spec['sessions']} sessions; no early efficacy stopping",'session_count':run.spec['sessions'],'variants':{'A':{'mode':'vector','size':64,'depth':10},'B':{'mode':'semantic','size':128,'depth':50}},'fixed_generation':{'deployment':run.config.get('foundry_deployment'),'model_version':run.config.get('foundry_version'),'max_completion_tokens':512,'reasoning_effort':'none','prompt_version':'rag-json-v1'}}
+    path=run.path/'ab-experiment-contract.json'; record=run.state.get('ab_experiment_contract')
+    if path.exists():
+        require(record is not None and record.get('path')==str(path) and digest(path)==record.get('sha256'),'Predeclared A/B contract changed or its run identity is missing.')
+        saved=read(path)
+        require({k:saved.get(k) for k in contract}==contract,'A/B metric, stop rule, assignment count or response settings changed after predeclaration. Start a new run.')
+    else:
+        require(record is None and not (run.path/'ab-observations.json').exists(),'A/B assignments exist without their predeclared contract; retain this run and start a new experiment.')
+        write(path,{**contract,'declared_at':now()})
+        run.state['ab_experiment_contract']={'path':str(path),'sha256':digest(path)}; run.save()
+    return {**read(path),'path':str(path),'sha256':digest(path)}
+
 def rag_ab(run,n):
+    experiment=ab_experiment_contract(run)
     a=Azure(run)
     if n==1:
-        a.prepare_index(); rows=[]; settings={'A':{'mode':'vector','size':64,'depth':10},'B':{'mode':'semantic','size':128,'depth':50}}
+        a.prepare_index(); rows=[]; settings=experiment['variants']
         for variant,params in settings.items():
             for q in validation():
                 kept,_,elapsed=a.query(q,**params); response,gen_ms,tokens=a.generate(q['question'],kept,trace={'query_id':q['query_id'],'variant':variant})
                 rows.append({'variant':variant,'query_id':q['query_id'],'query_type':q['query_type'],'question':q['question'],'supplied_context':kept,'reference_response':q['response'],'generation_evidence':a.last_generation_evidence,'raw_response':response,'retrieved_source_ids':[r['source_id'] for r in kept],'latency_ms':elapsed+gen_ms,'output_tokens':tokens,**retrieval_metrics(kept,q),**answer_metrics(response,q)})
         write_jsonl(run.attempt/'outcomes.jsonl',rows)
         review_path,_=prepare_manual_review(run,'rag-variants',rows)
-        return {'manual_review_path':str(review_path),'rows':rows,'settings':settings,'fixed_generation':{'deployment':run.config['foundry_deployment'],'model_version':run.config['foundry_version'],'max_completion_tokens':512,'reasoning_effort':'none','prompt_version':'rag-json-v1'},'variants':{v:summarize([r for r in rows if r['variant']==v]) for v in settings}}
+        return {'experiment_contract':experiment,'manual_review_path':str(review_path),'rows':rows,'settings':settings,'fixed_generation':experiment['fixed_generation'],'variants':{v:summarize([r for r in rows if r['variant']==v]) for v in settings}}
     if n==2:
         rows=run.previous(1)['rows']; reviewed=manual_review(run,'rag-variants',rows); lookup={(r['variant'],r['query_id']):r for r in reviewed['rows']}
         regressions=[{'query_id':q['query_id'],'A':lookup['A',q['query_id']],'B':lookup['B',q['query_id']]} for q in validation() if any(lookup['B',q['query_id']][k]<lookup['A',q['query_id']][k] for k in ('recall_at_k','ndcg_at_k','manual_correctness','manual_answer_support'))]
@@ -58,10 +83,11 @@ def rag_ab(run,n):
         for i in range(run.spec['sessions']):
             session=f'synthetic-session-{i:03}'; arm=assignment(session); q=validation()[i%len(validation())]; settings=run.previous(1)['settings'][arm]
             sessions.append({'session_id':session,'arm':arm,'query_id':q['query_id'],'query_type':q['query_type'],'settings':settings,'settings_hash':object_hash(settings),'assigned_at':now(),'status':'PENDING','exposures':[],'outcome':None,'population':'synthetic sessions'})
-        write(observed_path,{'run_id':run.state['run_id'],'sessions':sessions})
+        write(observed_path,{'run_id':run.state['run_id'],'experiment_contract_sha256':experiment['sha256'],'sessions':sessions})
         run.state['ab_observations']={'path':str(observed_path),'sha256':digest(observed_path)}; run.save()
     observed=run.state['ab_observations']; require(digest(observed_path)==observed['sha256'],'A/B observations changed outside the runner.')
     observations=read(observed_path)
+    require(observations.get('experiment_contract_sha256')==experiment['sha256'],'A/B assignments reference a different predeclared experiment.')
     def persist():
         write(observed_path,observations); run.state['ab_observations']['sha256']=digest(observed_path); run.save()
         write_jsonl(run.path/'ab-exposures.jsonl',[{k:v for k,v in row.items() if k!='outcome'} for row in observations['sessions']])
@@ -79,10 +105,10 @@ def rag_ab(run,n):
             row['status']='FAILED' if isinstance(exc,Exception) else 'INTERRUPTED'; row['outcome']={'session_id':row['session_id'],'arm':row['arm'],'query_id':q['query_id'],'settings_hash':row['settings_hash'],'status':row['status'],'error_type':type(exc).__name__,'error':str(exc),'latency_ms':(time.perf_counter()-started)*1000,'response_observed':False}; persist(); raise
     outcomes=[row['outcome'] for row in observations['sessions']]; require(len(outcomes)==run.spec['sessions'] and all(row['status']=='COMPLETED' for row in outcomes),'Missing A/B outcomes remain HOLD.')
     reviewed=manual_review(run,'rag-ab',outcomes); outcomes=reviewed['rows']
-    for file in ('ab-observations.json','ab-exposures.jsonl','ab-outcomes.jsonl','rag-ab-review.jsonl'): shutil.copy2(run.path/file,run.attempt/file)
+    for file in ('ab-experiment-contract.json','ab-observations.json','ab-exposures.jsonl','ab-outcomes.jsonl','rag-ab-review.jsonl'): shutil.copy2(run.path/file,run.attempt/file)
     summaries={v:summarize([r for r in outcomes if r['arm']==v]) for v in ('A','B')}
     delta=reviewed['by_variant']['B']['manual_answer_support']-reviewed['by_variant']['A']['manual_answer_support']
-    report={'manual_semantic_review':reviewed,'primary_metric':'manual_answer_support','stop_rule':f"fixed {run.spec['sessions']} sessions; no early efficacy stopping",'arm_summary':summaries,'assigned_sessions':len(observations['sessions']),'completed_outcomes':len(outcomes),'failed_outcomes':0,'difference_B_minus_A':delta,'uncertainty':'Not estimated: synthetic sessions repeat eight correlated questions; no inferential confidence interval is justified. Collect independent sessions and more source groups.','decision':'COLLECT_MORE_EVIDENCE','limitations':'No claim about production users or statistical significance.'}
+    report={'experiment_contract':experiment,'manual_semantic_review':reviewed,'primary_metric':experiment['primary_metric'],'stop_rule':experiment['stop_rule'],'arm_summary':summaries,'assigned_sessions':len(observations['sessions']),'completed_outcomes':len(outcomes),'failed_outcomes':0,'difference_B_minus_A':delta,'uncertainty':'Not estimated: synthetic sessions repeat eight correlated questions; no inferential confidence interval is justified. Collect independent sessions and more source groups.','decision':'COLLECT_MORE_EVIDENCE','limitations':'No claim about production users or statistical significance.'}
     report.update(a.track('rag-ab',{'support_delta':delta},run.attempt)); return report
 
 def index_tuned_checkpoint(a,artifact):
