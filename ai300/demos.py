@@ -383,7 +383,7 @@ def monitor_snapshot(a,start=None,end=None):
         snapshots.append({'resource':scope,'response':response})
     return {'window_start':start,'window_end':end,'snapshots':snapshots}
 
-def metric_values(snapshot,name,deployment=None,resource=None):
+def metric_values(snapshot,name,deployment=None,resource=None,status_code_class=None):
     values=[]
     for group in snapshot['snapshots']:
         if resource is not None and group['resource'].lower()!=resource.lower(): continue
@@ -392,6 +392,7 @@ def metric_values(snapshot,name,deployment=None,resource=None):
             for series in metric.get('timeseries',[]):
                 dimensions={m['name']['value'].lower():m['value'] for m in series.get('metadatavalues',[])}
                 if deployment is not None and dimensions.get('deployment')!=deployment: continue
+                if status_code_class is not None and dimensions.get('statuscodeclass','').casefold()!=status_code_class.casefold(): continue
                 for point in series.get('data',[]):
                     value=point.get('average')
                     if value is None: continue
