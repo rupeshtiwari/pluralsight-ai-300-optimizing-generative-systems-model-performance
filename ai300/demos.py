@@ -198,28 +198,11 @@ def lora_select(run,n):
     return {'selected_job':selected['job_name'],'output_path':selected['output_path'],'output_uri':selected['output_uri'],'result':selected['result'],'selection_rule':'lowest validation loss, elapsed CPU time breaks ties; task quality must still pass module 3 gates','shortlisted_checkpoints':candidates,'candidate_versions':[{'job':r['job_name'],'validation_loss':r['result']['validation_loss'],'elapsed_seconds':r['result']['elapsed_seconds'],'adapted_validation':r['adapted']['summary']} for r in candidates]}
 
 def model_evaluate(run,n):
-    a=Azure(run); selected=run.dependency('m2-demo4',3)
-    if n==1:
-        settings,encoder=prepare_retrieval(a)
-        contexts={q['query_id']:a.query(q,encoder=encoder,**settings)[0] if q['relevance'] else [] for q in validation(domain=False)}
-        candidates=selected['shortlisted_checkpoints']; require(len(candidates)==2,'Both shortlisted checkpoints are required.')
-        config={**run.spec,'retrieved_context':contexts,'retrieval_settings':settings,'retrieved_context_sha256':object_hash(contexts)}
-        return submit(a,'evaluate',config,adapter=candidates[0]['output_uri'],adapter2=candidates[1]['output_uri'])
-    if n==2:
-        job=completed(a,run.previous(1)); review_path,_=prepare_manual_review(run,'model-validation',[{**r,'variant':name} for name,value in job['result']['results'].items() for r in value['rows']]); return {**job,'manual_review_path':str(review_path),'failure_rows':{name:[r for r in report['rows'] if not all(r[k] for k in ('correctness','answer_support_proxy','schema_validity'))] for name,report in job['result']['results'].items()}}
-    report=run.previous(2); results=report['result']['results']; reviewed=manual_review(run,'model-validation',[{**r,'variant':name} for name,value in results.items() for r in value['rows']])
-    base=summarize([r for r in reviewed['rows'] if r['variant']=='base']); candidates={name:summarize([r for r in reviewed['rows'] if r['variant']==name]) for name in ('adapter','adapter2')}; gates=run.spec['gates']
-    eligible=[name for name,metrics in candidates.items() if all(metrics[key]>=floor and metrics[key]>=base[key]-gates['max_regression'] and all(group[key]>=floor and group[key]>=base['by_query_type'][kind][key]-gates['max_regression'] for kind,group in metrics['by_query_type'].items()) for key,floor in gates.items() if key!='max_regression')]
-    winner=max(eligible or list(candidates),key=lambda name:candidates[name]['manual_correctness']); candidate=candidates[winner]
-    checkpoint=selected['shortlisted_checkpoints'][0 if winner=='adapter' else 1]
-    selected={**selected,'selected_job':checkpoint['job_name'],'output_path':checkpoint['output_path'],'output_uri':checkpoint['output_uri'],'result':checkpoint['result']}
-    checks={key:candidate[key]>=floor and candidate[key]>=base[key]-gates['max_regression'] for key,floor in gates.items() if key!='max_regression'}
-    for kind in ('general','exact_identifier','paraphrase'):
-        for key,floor in gates.items():
-            if key=='max_regression': continue
-            checks[kind+'_'+key]=candidate['by_query_type'][kind][key]>=floor and candidate['by_query_type'][kind][key]>=base['by_query_type'][kind][key]-gates['max_regression']
-    checks.update(quality_checks([r for r in reviewed['rows'] if r['variant']==winner],gates,run.spec.get('minimum_by_query_type',{}),[r for r in reviewed['rows'] if r['variant']=='base']))
-    return {'manual_semantic_review':reviewed,'automatic_proxy_use':'diagnostics only; never acceptance','decision':'PASS' if all(checks.values()) else 'REJECT','gate_checks':checks,'base':base,'candidate':candidate,'selected_job':selected['selected_job'],'selected_output_path':selected['output_path'],'selected_output_uri':selected['output_uri'],'selected_result':selected['result'],'evaluation_job':report['job_name'],'evaluation_hash':report['result_sha256'],'validation_hash':report['result']['validation_sha256'],'config':report['result']['config']}
+    """Implement Demo: Evaluate fine-tuned candidates in Azure ML using the numbered learner steps."""
+    # Step 1: Submit an Azure ML evaluation job for the base model and both shortlisted adapters using the same domain and general-capability validation questions, retrieved context from the adopted search configuration, and generation settings
+    # Step 2: Inspect the completed job in MLflow, comparing task correctness, answer support, and schema validity by query type and reading concrete failures
+    # Step 3: Select the candidate against the validation gates and record the job, dataset, configuration, and per-example results
+    raise Hold("STARTER: Implement model_evaluate; compare origin/m3-demo1-after.")
 
 
 def model_deploy(run,n):
