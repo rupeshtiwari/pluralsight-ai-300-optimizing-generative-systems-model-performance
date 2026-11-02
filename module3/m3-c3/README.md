@@ -76,6 +76,14 @@ Finish the source and prerequisite runs, then initialize from the repository roo
 
 Open `ai300/demos.py:model_deploy` in VS Code (file and named function). Related source: `ai300/demos.py`, `ai300/core.py`, `ai300/azure.py`, `configs/m3-demo2.json`, `serving/score.py`, `environments/serve-conda.yml`.
 
+## Jump to a Step
+
+| Step | Action |
+|---|---|
+| [Step 1](#step-1) | Register a custom model asset containing the base-model revision, adapter, and tokenizer, linked to training data and validation evidence |
+| [Step 2](#step-2) | Deploy the candidate with versioned scoring code and an Azure ML CPU inference environment to an existing managed online endpoint at zero traffic |
+| [Step 3](#step-3) | Inspect the completed deployment and invoke it directly; verify the model identity and smoke-test responses while the baseline deployment continues serving |
+
 ## Numbered Steps
 
 <a id="step-1"></a>

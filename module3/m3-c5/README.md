@@ -87,6 +87,15 @@ Finish the source and prerequisite runs, then initialize from the repository roo
 
 Open `ai300/demos.py:canary_rollback` in VS Code (file and named function). Related source: `ai300/demos.py`, `ai300/core.py`, `ai300/azure.py`, `configs/m3-demo4.json`, `serving/score.py`.
 
+## Jump to a Step
+
+| Step | Action |
+|---|---|
+| [Step 1](#step-1) | Allocate 90 percent of managed endpoint traffic to the baseline and 10 percent to the candidate; send enough labeled test traffic to meet each gate’s minimum sample size, and record which deployment served each response |
+| [Step 2](#step-2) | Inspect Request Latency P95 split by deployment, Requests Per Minute split by deployment and status-code class, and the prepared Azure Monitor alert rule on Request Latency P95 |
+| [Step 3](#step-3) | Check the candidate’s canary responses and serving metrics against the predeclared gates, and stop promotion on any failure |
+| [Step 4](#step-4) | Exercise the rollback path by restoring 100 percent traffic to the baseline, then verify the routed model identity and responses before the promotion decision |
+
 ## Numbered Steps
 
 <a id="step-1"></a>
@@ -129,6 +138,10 @@ Open `ai300/demos.py:canary_rollback` in VS Code (file and named function). Rela
 ```bash
 ./module3/m3-c5/scripts/lab-step.sh 4
 ```
+
+Step 4 restores 100 percent baseline traffic before collecting its recovery workload. Open the retained `rollback-recovery-review.jsonl` in the run root, compare every response with its supplied context/reference, and fill `correct`, `supported`, `reason` and `reviewer`. Rerun the same step 4 command to collect the completed review and telemetry. The runner reuses `rollback-recovery-observations.json` and its original time window; it does not repeat the final test or replace an observed recovery workload.
+
+Rollback is verified only after the baseline passes the unchanged quality, per-query-type sample, schema, latency, successful-request and CPU/memory gates. A missing review, delayed telemetry or failing gate leaves traffic at 100 percent baseline and reports HOLD. Inspect `gate_checks`, `failed_gates`, `manual_semantic_review` and `request_outcome_rates`; restored traffic alone is not verified recovery.
 
 **Result:** the terminal prints the exact retained report path. Open `step-4-<attempt>/report.json` in your run folder; inspect `raw/` beside it. Expected field names: `traffic`, `rollback_verified`, `routed_responses`, `recovery_metrics`. These are contracts, not promised values.
 
