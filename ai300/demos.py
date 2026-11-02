@@ -129,43 +129,11 @@ def embedding_train(run,n):
     return {'decision':'ADOPT' if beats else 'REJECT','selection_metric':'ndcg_at_k','baseline':baseline,'tuned':tuned,'checkpoint_job':artifact['job_name'],'checkpoint_artifact':artifact,'checkpoint_manifest_sha256':artifact['result_sha256'],'query_and_document_encoder_identical':True,'held_out_split':'validation; final test remains unused for selection'}
 
 def synthetic_data(run,n):
-    a=Azure(run)
-    if n==1:
-        rows=[]
-        for doc in [d for d in jsonl(ROOT/'data/corpus.jsonl') if d['split']=='train']:
-            raw,elapsed,tokens=a.generate('Generate one example.',[doc],synthetic=True,trace={'source_id':doc['source_id']}); parsed=json.loads(raw)
-            rows.append({'example_id':uid(),'source_group':doc['source_group'],'source_ids':parsed['source_ids'],'question':parsed['question'],'answer':parsed['answer'],'source_sha256':object_hash(doc),'prompt_version':'synthetic-json-v1','generator':run.config['foundry_model'],'generator_version':run.config['foundry_version'],'generation_evidence':a.last_generation_evidence,'raw_response':raw})
-        write_jsonl(run.path/'generated.jsonl',rows)
-        write_jsonl(run.path/'review.jsonl',[{'example_id':r['example_id'],'example_sha256':object_hash(r),'decision':'PENDING','reason':'','reviewer':''} for r in rows])
-        return {'generated_path':str(run.path/'generated.jsonl'),'review_path':str(run.path/'review.jsonl'),'examples':len(rows),'next_action':'In VS Code compare each generated claim and condition against data/corpus.jsonl. Edit review.jsonl: ACCEPT or REJECT, reason, reviewer. Do not auto-approve.'}
-    rows=jsonl(run.path/'generated.jsonl'); docs={r['source_id']:r for r in jsonl(ROOT/'data/corpus.jsonl')}
-    require(len({r['question'].strip().casefold() for r in rows})==len(rows),'Duplicate generated prompt.')
-    for row in rows:
-        require(isinstance(row['question'],str) and isinstance(row['answer'],str) and row['source_ids'],'Invalid synthetic schema.')
-        require(all(isinstance(s,str) and s in docs and docs[s]['split']=='train' and docs[s]['source_group']==row['source_group'] for s in row['source_ids']),'Synthetic source reference or group leakage.')
-        require(len(row['source_ids'])==1 and row['source_sha256']==object_hash(docs[row['source_ids'][0]]),'Synthetic source identity/hash changed.')
-    reviews=jsonl(run.path/'review.jsonl'); by_id={r['example_id']:r for r in reviews}
-    require(len(reviews)==len(rows) and len(by_id)==len(rows) and set(by_id)=={r['example_id'] for r in rows},'Review coverage must exactly match generated examples.')
-    require(all(by_id[row['example_id']].get('example_sha256')==object_hash(row) for row in rows),'Generated example changed after manual review was prepared.')
-    require(all(r['decision'] in ('ACCEPT','REJECT') and r['reason'].strip() and r['reviewer'].strip() for r in reviews),'Manual review is incomplete. Fill decision, reason and reviewer for every row.')
-    accepted=[r for r in rows if by_id[r['example_id']]['decision']=='ACCEPT']; require(accepted,'At least one supported example must be accepted.')
-    if n==2:
-        folder=run.path/'reviewed-data'; folder.mkdir(exist_ok=False); write_jsonl(folder/'accepted.jsonl',accepted); write_jsonl(folder/'review-decisions.jsonl',reviews)
-        write_jsonl(folder/'rejected.jsonl',[{**r,'review':by_id[r['example_id']]} for r in rows if by_id[r['example_id']]['decision']=='REJECT'])
-        for split in ('validation','test'): write_jsonl(folder/f'{split}.jsonl',[r for r in jsonl(ROOT/'data/queries.jsonl') if r['split']==split])
-        hashes={p.name:digest(p) for p in folder.iterdir()}; write(folder/'hashes.json',hashes)
-        return {'accepted':len(accepted),'rejected':len(rows)-len(accepted),'data_path':str(folder),'hashes':hashes,'review_scope':'human factual support against original source plus automated structural/split checks'}
-    from azure.ai.ml.entities import Data
-    folder=Path(run.previous(2)['data_path']); require(all(digest(folder/name)==sha for name,sha in run.previous(2)['hashes'].items()),'Reviewed data changed after approval.')
-    version=run.state['run_id'].replace('-',''); assets={}
-    # Separate train/validation/test assets avoid accidental final-test mount during training.
-    for name in ('accepted','review-decisions','rejected','validation','test','hashes'):
-        path=folder/(name+'.json' if name=='hashes' else name+'.jsonl')
-        asset=a.ml.data.create_or_update(Data(name='ai300-'+name,version=version,type='uri_file',path=str(path),description='Original support data; reviewed example and split lineage',tags={'sha256':digest(path),'course':'ai300'})); assets[name]=asset.id
-    train_bundle=run.attempt/'training-data'; train_bundle.mkdir()
-    for name in ('accepted.jsonl','validation.jsonl','hashes.json'): shutil.copy2(folder/name,train_bundle/name)
-    asset=a.ml.data.create_or_update(Data(name='ai300-training-bundle',version=version,type='uri_folder',path=str(train_bundle),tags={'train_hash':digest(folder/'accepted.jsonl'),'validation_hash':digest(folder/'validation.jsonl')})); assets['training_bundle']=asset.id
-    return {'data_assets':assets,'version':version,'hashes':run.previous(2)['hashes'],'final_test_separate':True}
+    """Implement Demo: Generate and version synthetic data with Foundry using the numbered learner steps."""
+    # Step 1: Call the gpt-5.6-luna deployment in Microsoft Foundry to generate support-response examples from training-source documents, logging source, prompt, and generator versions
+    # Step 2: Check JSONL structure, duplicate prompts, source references, and split leakage with Python; manually accept or reject examples by checking their claims against the source
+    # Step 3: Register accepted examples, rejection reasons, hashes, and separate validation and test files as versioned Azure ML data assets
+    raise Hold("STARTER: Implement synthetic_data; compare origin/m2-demo2-after.")
 
 def lora_train(run,n):
     a=Azure(run)

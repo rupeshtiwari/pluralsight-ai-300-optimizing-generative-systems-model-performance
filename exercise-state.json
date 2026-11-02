@@ -1,0 +1,12 @@
+{
+  "state": "STARTER",
+  "demo": "m2-demo2",
+  "before_branch": "m2-demo2-before",
+  "after_branch": "m2-demo2-after",
+  "reference_main": "fd986ca196427b6dca1d072348ba0e81dc6e3a2c",
+  "source_file": "ai300/demos.py",
+  "omitted_function": "synthetic_data",
+  "completed_function_sha256": "e650e0e8b53ececb8cf70b5fda7f91f27e161a96f5ce2b42d75ad6934d42f85c",
+  "prerequisites": [],
+  "runtime": "NOT RUN"
+}
