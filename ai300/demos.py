@@ -18,20 +18,11 @@ def sweep(a,variants,questions=None,encoder=None):
     return {'rows':rows,'variants':{v:summarize([x for x in rows if x['variant']==v]) for v in variants},'split':'validation','measurement':'live Azure Search responses'}
 
 def retrieval_chunks(run,n):
-    a=Azure(run)
-    if n==1:
-        count=a.prepare_index(); result=sweep(a,{str(s):{'size':s,'depth':10} for s in run.spec['chunk_sizes']}); result['indexed_chunks']=count
-    elif n==2:
-        result=sweep(a,{'depth10-cut0':{'size':128,'depth':10,'cutoff':0.0},'depth20-cut0':{'size':128,'depth':20,'cutoff':0.0},'depth20-cut05':{'size':128,'depth':20,'cutoff':0.5}})
-        result['score_contract']='cosine_similarity = 2 - 1/@search.score; one vector query only'
-    else:
-        reports=[run.previous(i) for i in (1,2)]; variants={str(i)+'-'+k:v for i,r in enumerate(reports,1) for k,v in r['variants'].items()}
-        eligible=[k for k,v in variants.items() if v['p95_latency_ms']<=run.spec['latency_budget_ms']]
-        require(eligible,'No retrieval variant fits the predeclared latency budget; retain the baseline.')
-        winner=max(eligible,key=lambda k:(variants[k]['recall_at_k'],-variants[k]['boundary_failure'],-variants[k]['latency_ms']))
-        settings={str(i)+'-'+r['variant']:r['settings'] for i,report in enumerate(reports,1) for r in report['rows']}
-        result={'comparison':variants,'selected_variant':winner,'selected_settings':settings[winner],'latency_budget_ms':run.spec['latency_budget_ms'],'selection_rule':'maximize recall, minimize boundary failures, then latency','limitations':'Eight domain validation queries; not statistical proof of general improvement. Cutoff changes retained evidence, not server retrieval.'}
-    return result
+    """Implement Demo: Tune chunk sizes and similarity cutoffs on Azure AI Search results using the numbered learner steps."""
+    # Step 1: Query one Azure AI Search Free-tier index with a chunk_size pre-filter to select 64-, 128-, or 192-token chunks of the same corpus, encoded with all-MiniLM-L6-v2
+    # Step 2: Vary vector candidate depth, convert single-vector query scores back to cosine similarity in the Python client, and apply a cutoff; inspect retained and rejected results
+    # Step 3: Compare Recall@k, boundary failures, and latency while changing one control at a time; keep the configuration with the best recall within the latency budget
+    raise Hold("STARTER: Implement retrieval_chunks; compare origin/m1-demo1-after.")
 
 def hybrid_search(run,n):
     a=Azure(run)
