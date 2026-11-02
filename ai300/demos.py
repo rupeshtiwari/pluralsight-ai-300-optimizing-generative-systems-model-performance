@@ -277,66 +277,11 @@ def endpoint_workload(a,questions,limit,deployment,expected_identity=None,minimu
     return {'rows':rows,'summary':summarize(rows),'max_new_tokens':limit,'window_start':started,'window_end':now(),'window_complete':elapsed>=minimum_seconds,'observation_seconds':elapsed,'population':'controlled repeated questions; not independent users'}
 
 def endpoint_test(run,n):
-    a=Azure(run); deployment=run.dependency('m3-demo2',3); identity=deployment['model_identity']
-    current=deployment_snapshot(a,run.config['candidate_deployment']); require(current==deployment['deployment_snapshot'],'Candidate deployment model/environment/code/runtime settings changed after smoke evidence.')
-    if n==1:
-        observations=run.path/'validation-benchmarks.json'
-        if 'benchmark_observations' not in run.state:
-            questions=questions_with_context(a,validation(domain=False))
-            results={str(limit):endpoint_workload(a,questions,limit,run.config['candidate_deployment'],identity,minimum_seconds=run.spec.get('minimum_observation_seconds',0),max_requests=run.spec.get('max_observation_requests')) for limit in run.spec['token_limits']}
-            write(observations,results); run.state['benchmark_observations']={'path':str(observations),'sha256':digest(observations)}; run.save()
-        require(digest(observations)==run.state['benchmark_observations']['sha256'],'Validation benchmark observations changed.')
-        results=read(observations)
-        if run.spec.get('minimum_observation_seconds',0): require(all(v.get('window_complete') for v in results.values()),'Bounded benchmark did not sustain the declared observation window; do not attribute partial-minute telemetry. Review the request budget and start a new run.')
-        snapshots={limit:monitor_snapshot(a,value['window_start'],value['window_end']) for limit,value in results.items()}
-        for snapshot in snapshots.values(): require_monitor_coverage(snapshot,run,[run.config['candidate_deployment']])
-        reviewed=manual_review(run,'validation-limits',[{**r,'variant':limit} for limit,value in results.items() for r in value['rows']])
-        semantic={limit:summarize([r for r in reviewed['rows'] if r['variant']==limit]) for limit in results}
-        eligible=[]
-        for limit,summary in semantic.items():
-            rows=[r for r in reviewed['rows'] if r['variant']==limit]
-            checks=quality_checks(rows,run.spec['gates'],run.spec.get('minimum_by_query_type',{}))
-            checks.update(resource_checks(snapshots[limit],run,[run.config['candidate_deployment']]))
-            checks['latency']=summary['p95_latency_ms']<=run.spec['latency_budget_ms']
-            if all(checks.values()): eligible.append(limit)
-        require(eligible,'No validation output-length setting passes human semantic and schema gates; final test remains unopened.')
-        selected=min(eligible,key=lambda key:semantic[key]['p95_latency_ms'])
-        return {'manual_semantic_review':reviewed,'benchmarks':results,'utilization_evidence':snapshots,'semantic_quality_by_limit':semantic,'automatic_proxy_use':'diagnostics only; never acceptance','selected_max_new_tokens':int(selected),'selection_rule':'minimum validation p95 latency among settings passing human correctness/support and schema floors in every query type','model_identity':identity}
-    require(current['request_timeout_ms']==run.spec['request_timeout_ms'],'Deployment timeout differs from the declared frozen choice.')
-    if n==2:
-        # The test ledger is dataset-global, not run-local. A new run cannot erase prior consumption.
-        questions=[q for q in jsonl(ROOT/'data/queries.jsonl') if q['split']=='test']; dataset_hash=object_hash(questions)
-        ledger=ROOT/'.state'/'consumed-final-tests'/f'{dataset_hash}.json'
-        require(not ledger.exists(),'This final-test set has already been opened. After tuning, obtain a new untouched test set; do not delete its ledger.')
-        require(deployment_snapshot(a,run.config['baseline_deployment'])==deployment['baseline_deployment_snapshot'],'Baseline changed before final test.')
-        frozen={'baseline_deployment_snapshot':deployment['baseline_deployment_snapshot'],'baseline_model_identity':deployment['baseline_model_identity'],'endpoint_auth_mode':deployment['endpoint_auth_mode'],'deployment_snapshot':current,'environment_identity':deployment['environment_identity'],'model_id':deployment['model_id'],'model_identity':identity,'environment':deployment['environment'],'scoring_sha256':deployment['scoring_sha256'],'request_timeout_ms':current['request_timeout_ms'],'max_new_tokens':run.previous(1)['selected_max_new_tokens'],'do_sample':False,'test_sha256':dataset_hash,'retrieval_settings':run.config['adopted_retrieval']}
-        write(run.path/'frozen-release.json',frozen); ledger.parent.mkdir(parents=True,exist_ok=True)
-        with ledger.open('x') as handle: json.dump({'opened_at':now(),'run':str(run.path),'release_hash':object_hash(frozen),'status':'OPENED_NO_RERUN'},handle)
-        questions=questions_with_context(a,questions)
-        frozen['retrieved_test_context_sha256']=object_hash({q['query_id']:q['retrieved_context'] for q in questions})
-        write(run.path/'frozen-release.json',frozen)
-        write(ledger,{'opened_at':now(),'run':str(run.path),'release_hash':object_hash(frozen),'status':'OPENED_NO_RERUN'})
-        baseline=endpoint_workload(a,questions,frozen['max_new_tokens'],run.config['baseline_deployment'],deployment['baseline_model_identity'],minimum_seconds=run.spec.get('minimum_observation_seconds',0),max_requests=run.spec.get('max_observation_requests'))
-        result=endpoint_workload(a,questions,frozen['max_new_tokens'],run.config['candidate_deployment'],identity,minimum_seconds=run.spec.get('minimum_observation_seconds',0),max_requests=run.spec.get('max_observation_requests'))
-        result['baseline_comparison']=baseline
-        review_path,_=prepare_manual_review(run,'final-test',[{**r,'variant':name} for name,value in [('baseline',baseline),('candidate',result)] for r in value['rows']])
-        return {'manual_review_path':str(review_path),'frozen_release':frozen,'frozen_release_sha256':object_hash(frozen),'final_test':result,'test_ledger':str(ledger)}
-    previous=run.previous(2)
-    if run.spec.get('minimum_observation_seconds',0): require(previous['final_test'].get('window_complete') and previous['final_test']['baseline_comparison'].get('window_complete'),'Final-test observation windows incomplete; retain baseline and preserve consumed-test evidence.')
-    snapshot=monitor_snapshot(a,previous['final_test']['baseline_comparison']['window_start'],previous['final_test']['window_end']); require_monitor_coverage(snapshot,run,[run.config['baseline_deployment'],run.config['candidate_deployment']])
-    final=previous['final_test']; baseline=final['baseline_comparison']
-    reviewed=manual_review(run,'final-test',[{**r,'variant':name} for name,value in [('baseline',baseline),('candidate',final)] for r in value['rows']])
-    candidate_rows=[r for r in reviewed['rows'] if r['variant']=='candidate']; baseline_rows=[r for r in reviewed['rows'] if r['variant']=='baseline']
-    summary=summarize(candidate_rows); checks=quality_checks(candidate_rows,run.spec['gates'],run.spec.get('minimum_by_query_type',{}),baseline_rows)
-    checks['p95_latency_ms']=summary['p95_latency_ms']<=run.spec['latency_budget_ms']
-    checks.update(resource_checks(snapshot,run,[run.config['candidate_deployment']]))
-    decision='PASS' if all(checks.values()) else 'REJECT'; result={'manual_semantic_review':reviewed,'semantic_quality_summary':summary,'automatic_proxy_use':'diagnostics only; never acceptance','release_decision':decision,'utilization_evidence':snapshot,'baseline_comparison':previous['final_test']['baseline_comparison'],'gate_checks':checks,'final_test':previous['final_test'],'frozen_release':previous['frozen_release'],'frozen_release_sha256':previous['frozen_release_sha256'],'next_action':'Proceed to controlled canary.' if decision=='PASS' else 'Retain baseline. Further tuning requires a new untouched test set.'}
-    write(run.attempt/'release-evidence.json',result)
-    result.update(a.track('final-test',{'release_pass':int(decision=='PASS')},run.attempt))
-    model=a.ml.models.get(name=identity['model_name'],version=identity['model_version'])
-    model.tags={**(model.tags or {}),'release_mlflow_run_id':result['mlflow_run_id'],'release_evidence_sha256':digest(run.attempt/'release-evidence.json'),'frozen_release_sha256':previous['frozen_release_sha256']}
-    a.ml.models.create_or_update(model)
-    return result
+    """Implement Demo: Optimize and test the Azure model endpoint using the numbered learner steps."""
+    # Step 1: Benchmark the candidate deployment directly with a fixed validation workload; compare output-length limits using latency, output tokens, CPU and memory utilization, and answer quality
+    # Step 2: Freeze the selected model, environment, and inference settings (output-length limit and request timeout), then run the untouched domain and general-capability test set against the candidate and baseline deployments
+    # Step 3: Store the final test report and release configuration with the model version in Azure ML
+    raise Hold("STARTER: Implement endpoint_test; compare origin/m3-demo3-after.")
 
 
 def endpoint_resource(run): return f"/subscriptions/{run.config['subscription_id']}/resourceGroups/{run.config['resource_group']}/providers/Microsoft.MachineLearningServices/workspaces/{run.config['workspace']}/onlineEndpoints/{run.config['endpoint']}"
