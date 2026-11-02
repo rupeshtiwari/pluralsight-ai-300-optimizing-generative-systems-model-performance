@@ -118,15 +118,11 @@ def questions_with_context(a,questions):
     return [{**q,'retrieved_context':a.query(q,encoder=encoder,**settings)[0] if q['relevance'] else []} for q in questions]
 
 def embedding_train(run,n):
-    a=Azure(run)
-    if n==1: return submit(a,'train_embedding',run.spec)
-    if n==2: return completed(a,run.previous(1))
-    artifact=run.previous(2); a.prepare_index(); model=index_tuned_checkpoint(a,artifact)
-    size=run.config.get('adopted_retrieval',{}).get('size',128)
-    baseline=sweep(a,{'minilm':{'field':'mini_vector','size':size},'bge':{'field':'bge_vector','size':size}})
-    tuned=sweep(a,{'tuned':{'field':'tuned_vector','size':size}},encoder=model)
-    beats=all(tuned['variants']['tuned']['ndcg_at_k']>metrics['ndcg_at_k'] for metrics in baseline['variants'].values())
-    return {'decision':'ADOPT' if beats else 'REJECT','selection_metric':'ndcg_at_k','baseline':baseline,'tuned':tuned,'checkpoint_job':artifact['job_name'],'checkpoint_artifact':artifact,'checkpoint_manifest_sha256':artifact['result_sha256'],'query_and_document_encoder_identical':True,'held_out_split':'validation; final test remains unused for selection'}
+    """Implement Demo: Fine-tune domain embeddings in Azure ML using the numbered learner steps."""
+    # Step 1: Configure a Sentence Transformers contrastive training script for the selected bge-small-en-v1.5 model with reviewed positive pairs and hard negatives, then submit an Azure ML CPU command job
+    # Step 2: Inspect the completed job and confirm its code, environment, and data versions; select the checkpoint with the best validation metrics and keep the job output
+    # Step 3: Encode corpus and queries with the selected checkpoint; populate its dedicated vector field in the same index, filter to the same chunk_size, and keep the tuned field only if its held-out relevance beats both the all-MiniLM-L6-v2 and base bge-small-en-v1.5 fields
+    raise Hold("STARTER: Implement embedding_train; compare origin/m2-demo1-after.")
 
 def synthetic_data(run,n):
     a=Azure(run)
