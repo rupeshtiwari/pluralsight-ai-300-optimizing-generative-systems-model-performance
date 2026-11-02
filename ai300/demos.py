@@ -34,17 +34,11 @@ def retrieval_chunks(run,n):
     return result
 
 def hybrid_search(run,n):
-    a=Azure(run)
-    if n==1:
-        a.prepare_index(); return sweep(a,{mode:{'mode':mode,'depth':10} for mode in ('keyword','vector','hybrid')})
-    if n==2:
-        return sweep(a,{'hybrid-w1-k10':{'mode':'hybrid','weight':1.,'depth':10},'hybrid-w2-k10':{'mode':'hybrid','weight':2.,'depth':10},'hybrid-w2-k50':{'mode':'hybrid','weight':2.,'depth':run.spec['semantic_candidates']},'semantic-w2-k50':{'mode':'semantic','weight':2.,'depth':run.spec['semantic_candidates']}})
-    baseline=run.previous(1)['variants']['hybrid']; variants=run.previous(2)['variants']; rows=run.previous(2)['rows']
-    regressions=[{'variant':name,'query_type':t,'recall_delta':v['by_query_type'][t]['recall_at_k']-baseline['by_query_type'][t]['recall_at_k']} for name,v in variants.items() for t in baseline['by_query_type'] if v['by_query_type'][t]['recall_at_k']<baseline['by_query_type'][t]['recall_at_k']]
-    eligible=[name for name,metrics in variants.items() if metrics['p95_latency_ms']<=run.spec['latency_budget_ms'] and not any(r['variant']==name for r in regressions) and metrics['ndcg_at_k']>baseline['ndcg_at_k']]
-    winner=max(eligible,key=lambda name:variants[name]['ndcg_at_k']) if eligible else None
-    settings={r['variant']:r['settings'] for r in rows}
-    return {'baseline':baseline,'variants':variants,'query_type_regressions':regressions,'score_types':{'keyword':'BM25','vector':'transformed cosine','hybrid':'RRF','semantic':'RRF plus separate @search.rerankerScore'},'decision':'ADOPT' if winner else 'RETAIN_BASELINE','selected_variant':winner,'selected_settings':settings[winner] if winner else {'mode':'hybrid','depth':10},'latency_budget_ms':run.spec['latency_budget_ms'],'example_rows':rows[:2]}
+    """Implement Demo: Run hybrid search and semantic reranking in Azure using the numbered learner steps."""
+    # Step 1: Send text and vector queries together to Azure AI Search; compare its reciprocal rank fusion results with separate keyword and vector searches
+    # Step 2: Vary vector weight and candidate depth, then enable semantic reranking with 50 vector candidates and inspect search and reranker scores separately
+    # Step 3: Compare exact-identifier and paraphrased questions on the same validation set; accept a relevance gain only when no query type regresses
+    raise Hold("STARTER: Implement hybrid_search; compare origin/m1-demo2-after.")
 
 def rag_ab(run,n):
     a=Azure(run)
