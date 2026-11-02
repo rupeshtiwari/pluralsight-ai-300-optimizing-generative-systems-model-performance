@@ -72,6 +72,14 @@ Finish the source and prerequisite runs, then initialize from the repository roo
 
 Open `ai300/demos.py:lora_train` in VS Code (file and named function). Related source: `ai300/demos.py`, `ai300/core.py`, `ai300/azure.py`, `configs/m2-demo3.json`, `jobs/train_lora.py`, `jobs/common.py`, `environments/train-conda.yml`.
 
+## Jump to a Step
+
+| Step | Action |
+|---|---|
+| [Step 1](#step-1) | Configure Qwen3-0.6B supervised training with Transformers and PEFT, choosing LoRA rank, target modules, learning rate, batch size, and response-only loss |
+| [Step 2](#step-2) | Submit the CPU command job, then track training and validation loss for the completed run in Azure ML through MLflow |
+| [Step 3](#step-3) | Diagnose divergence between training and validation loss, then inspect base and adapted validation responses for memorization and task errors before further tuning |
+
 ## Numbered Steps
 
 <a id="step-1"></a>
