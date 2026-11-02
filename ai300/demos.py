@@ -223,45 +223,11 @@ def model_evaluate(run,n):
 
 
 def model_deploy(run,n):
-    a=Azure(run)
-    if n==1:
-        from azure.ai.ml.entities import Model
-        from huggingface_hub import snapshot_download
-        evaluation=run.dependency('m3-demo1',3); require(evaluation['decision']=='PASS','Validation gates rejected candidate; registration/deployment blocked.')
-        selected=Path(evaluation['selected_output_path']); bundle=run.attempt/'model-bundle'; bundle.mkdir()
-        revision=evaluation['selected_result']['base_revision']; require(revision==run.config['model_revisions']['Qwen/Qwen3-0.6B'],'Selected base revision differs from requested deployment.')
-        base=snapshot_download('Qwen/Qwen3-0.6B',revision=revision,allow_patterns=['*.json','*.safetensors','*.txt','*.model','*.jinja']); shutil.copytree(base,bundle/'base')
-        for folder in ('adapter','tokenizer'): shutil.copytree(selected/folder,bundle/folder)
-        version=run.state['run_id'].replace('-',''); identity={'model_name':'ai300-support-lora','model_version':version,'base_model':'Qwen/Qwen3-0.6B','base_revision':revision,'training_job':evaluation['selected_job'],'training_data_sha256':evaluation['selected_result']['data_sha256'],'validation_job':evaluation['evaluation_job'],'validation_sha256':evaluation['validation_hash'],'validation_report_sha256':evaluation['evaluation_hash'],'tokenizer_sha256':object_hash({p.name:digest(p) for p in (bundle/'tokenizer').iterdir() if p.is_file()}),'prompt_version':'support-json-v1'}
-        write(bundle/'identity.json',identity); write(bundle/'validation-evidence.json',evaluation)
-        model=a.ml.models.create_or_update(Model(name=identity['model_name'],version=version,path=str(bundle),type='custom_model',description='CPU Qwen3 model, LoRA adapter, tokenizer and validation lineage',tags={'course':'ai300','training_job':identity['training_job'],'validation_job':identity['validation_job']}))
-        return {'model_id':model.id,'model_identity':identity,'bundle_path':str(bundle),'bundle_hashes':{str(p.relative_to(bundle)):digest(p) for p in bundle.rglob('*') if p.is_file()}}
-    if n==2:
-        from azure.ai.ml.entities import ManagedOnlineDeployment, CodeConfiguration, OnlineRequestSettings
-        baseline=a.ml.online_deployments.get(run.config['baseline_deployment'],run.config['endpoint']); endpoint=course_endpoint(a)
-        require(baseline.provisioning_state=='Succeeded','Existing baseline must be genuinely deployed first.')
-        require(endpoint.traffic.get(run.config['baseline_deployment'])==100,'Start with baseline at 100 percent.')
-        require(run.config['candidate_deployment']!=run.config['baseline_deployment'],'Candidate and baseline must differ.')
-        # Never overwrite an existing deployment with this short course name.
-        existing={d.name for d in a.ml.online_deployments.list(run.config['endpoint'])}
-        require(run.config['candidate_deployment'] not in existing,'Candidate name already exists; clean up or choose a fresh name.')
-        serving_environment=resolve_environment(a.ml,run.config['serving_environment'],'serve-conda.yml')
-        deployment=ManagedOnlineDeployment(name=run.config['candidate_deployment'],endpoint_name=run.config['endpoint'],model=run.previous(1)['model_id'],environment=serving_environment['id'],code_configuration=CodeConfiguration(code=str(ROOT/'serving'),scoring_script='score.py'),instance_type=run.config['endpoint_instance_type'],instance_count=1,environment_variables={'DEPLOYMENT_NAME':run.config['candidate_deployment'],'OMP_NUM_THREADS':'4','HF_HUB_OFFLINE':'1'},request_settings=OnlineRequestSettings(request_timeout_ms=180000,max_concurrent_requests_per_instance=1),tags={'course':'ai300','run_id':run.state['run_id']})
-        require(not any(x in run.config['endpoint_instance_type'].upper() for x in ('STANDARD_N','GPU')),'CPU instance required.')
-        # Submit without blocking for deployment completion; step 3 reads genuine completed state.
-        run.state['resources']['candidate_deployment']=deployment.name; run.state['resources']['endpoint']=run.config['endpoint']; run.save()
-        poller=a.ml.online_deployments.begin_create_or_update(deployment)
-        return {'endpoint':endpoint.name,'candidate_deployment':deployment.name,'model_id':run.previous(1)['model_id'],'environment':serving_environment['id'],'environment_identity':serving_environment,'scoring_sha256':digest(ROOT/'serving/score.py'),'traffic_before':endpoint.traffic,'status':'SUBMITTED','continuation_token':poller.continuation_token()}
-    candidate=a.ml.online_deployments.get(run.config['candidate_deployment'],run.config['endpoint']); endpoint=course_endpoint(a)
-    require(candidate.provisioning_state=='Succeeded',f'Deployment is {candidate.provisioning_state}; inspect Azure ML and retry after success.')
-    require(endpoint.traffic.get(run.config['baseline_deployment'])==100 and endpoint.traffic.get(run.config['candidate_deployment'],0)==0,'Candidate must remain at zero traffic.')
-    q=validation()[0]; response,elapsed=a.invoke(endpoint_payload(q,96),run.config['candidate_deployment'])
-    require(response['model_identity']==run.previous(1)['model_identity'],'Direct candidate identity does not match registered asset.')
-    baseline,base_ms=a.invoke(endpoint_payload(q,96))
-    require(baseline['deployment']==run.config['baseline_deployment'],'Baseline is not serving routed requests.')
-    snapshot=deployment_snapshot(a,run.config['candidate_deployment']); require(snapshot['environment_id']==run.previous(2)['environment'] and snapshot['model_id']==run.previous(1)['model_id'],'Deployed assets differ from registered model/environment.')
-    baseline_snapshot=deployment_snapshot(a,run.config['baseline_deployment'])
-    return {'baseline_deployment_snapshot':baseline_snapshot,'baseline_model_identity':baseline['model_identity'],'endpoint_auth_mode':endpoint.auth_mode,'deployment_snapshot':snapshot,'environment_identity':run.previous(2)['environment_identity'],'provisioning_state':candidate.provisioning_state,'traffic':endpoint.traffic,'model_identity':response['model_identity'],'smoke_response':response,'smoke_metrics':answer_metrics(response['response'],q),'latency_ms':elapsed,'baseline_response':baseline,'model_id':run.previous(1)['model_id'],'environment':run.previous(2)['environment'],'scoring_sha256':run.previous(2)['scoring_sha256']}
+    """Implement Demo: Deploy a versioned model to Azure ML using the numbered learner steps."""
+    # Step 1: Register a custom model asset containing the base-model revision, adapter, and tokenizer, linked to training data and validation evidence
+    # Step 2: Deploy the candidate with versioned scoring code and an Azure ML CPU inference environment to an existing managed online endpoint at zero traffic
+    # Step 3: Inspect the completed deployment and invoke it directly; verify the model identity and smoke-test responses while the baseline deployment continues serving
+    raise Hold("STARTER: Implement model_deploy; compare origin/m3-demo2-after.")
 
 def endpoint_payload(q,limit):
     return {'question':q['question'],'evidence':q.get('retrieved_context',[]),'max_new_tokens':limit}
