@@ -1,0 +1,15 @@
+{
+  "state": "STARTER",
+  "demo": "m2-demo4",
+  "before_branch": "m2-demo4-before",
+  "after_branch": "m2-demo4-after",
+  "reference_main": "fd986ca196427b6dca1d072348ba0e81dc6e3a2c",
+  "source_file": "ai300/demos.py",
+  "omitted_function": "lora_select",
+  "completed_function_sha256": "6971b6404ea474e8f621be6aafc6baedb8ae0a4f46863f2c2db7219dfae76f3b",
+  "prerequisites": [
+    "m2-demo3",
+    "m2-demo2"
+  ],
+  "runtime": "NOT RUN"
+}

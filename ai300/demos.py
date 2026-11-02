@@ -181,21 +181,11 @@ def lora_train(run,n):
     return {'job_name':job['job_name'],'history':history,'divergence_observed':divergence,'base':read(path/'base-validation.json'),'adapted':read(path/'adapted-validation.json'),'diagnosis':'Training/validation divergence observed; inspect the failure rows.' if divergence else 'No loss divergence in this run; inspect actual task failures before tuning.','selected_epoch':result['selected_epoch'],'output_path':job['output_path'],'output_uri':job['output_uri'],'result':result}
 
 def lora_select(run,n):
-    a=Azure(run); first=run.dependency('m2-demo3',3)
-    if n==1:
-        original=first['result']['config']; config={**original,'rank':run.spec['rank']}
-        # Rank alone changes; train_lora derives alpha=2*rank, preserving alpha/rank.
-        synthetic=run.dependency('m2-demo2',3)
-        return submit(a,'train_lora',config,data=synthetic['data_assets']['training_bundle'])
-    if n==2:
-        second=completed(a,run.previous(1)); second['base']=read(Path(second['output_path'])/'base-validation.json'); second['adapted']=read(Path(second['output_path'])/'adapted-validation.json'); configs=[first['result']['config'],second['result']['config']]
-        controls=('learning_rate','batch_size','seed','epochs','target_modules','max_length','max_new_tokens','base_revision','model_revisions','environment')
-        require(all(configs[0][k]==configs[1][k] for k in controls),'Controlled factor drift between LoRA jobs.')
-        require(first['result']['data_sha256']==second['result']['data_sha256'] and first['result']['validation_sha256']==second['result']['validation_sha256'],'Data changed between LoRA experiments.')
-        return {'first':first,'second':second,'controlled_factors':list(controls),'interpretation':'Rank-only comparison; alpha/rank=2 and every other training control remains fixed.'}
-    previous=run.previous(2); candidates=[previous['first'],previous['second']]
-    selected=min(candidates,key=lambda r:(r['result']['validation_loss'],r['result']['elapsed_seconds']))
-    return {'selected_job':selected['job_name'],'output_path':selected['output_path'],'output_uri':selected['output_uri'],'result':selected['result'],'selection_rule':'lowest validation loss, elapsed CPU time breaks ties; task quality must still pass module 3 gates','shortlisted_checkpoints':candidates,'candidate_versions':[{'job':r['job_name'],'validation_loss':r['result']['validation_loss'],'elapsed_seconds':r['result']['elapsed_seconds'],'adapted_validation':r['adapted']['summary']} for r in candidates]}
+    """Implement Demo: Tune LoRA rank and select checkpoints in Azure ML using the numbered learner steps."""
+    # Step 1: Configure a second CPU command job that changes only the LoRA rank, with the alpha-to-rank ratio, base model, data splits, seed, learning rate, target modules, and training budget held fixed
+    # Step 2: Compare both completed runs in MLflow using validation loss, elapsed time, and task outputs, and judge whether the higher rank earns its extra CPU cost
+    # Step 3: Shortlist the best checkpoint from each run by validation loss, then save each adapter with the exact base-model revision, tokenizer, data, and environment versions
+    raise Hold("STARTER: Implement lora_select; compare origin/m2-demo4-after.")
 
 def model_evaluate(run,n):
     a=Azure(run); selected=run.dependency('m2-demo4',3)
