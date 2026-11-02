@@ -57,8 +57,8 @@
       "clip": 2,
       "title": "Demo: Tune chunk sizes and similarity cutoffs on Azure AI Search results",
       "folder": "module1/m1-c2",
-      "before_branch": null,
-      "start_branch": "m1-demo1-after",
+      "before_branch": "m1-demo1-before",
+      "start_branch": "m1-demo1-before",
       "after_branch": "m1-demo1-after",
       "objectives": [
         "TO1",
@@ -118,7 +118,7 @@
         "lab-down": "module1/m1-c2/scripts/lab-down.sh"
       },
       "status": "IMPLEMENTED_SOURCE_AZURE_RUNTIME_NOT_RUN",
-      "branch_semantics": "Operational reference: complete source is supplied; genuine cloud state and retained dependency artifacts distinguish this exercise.",
+      "branch_semantics": "Before: only this demo orchestration function is unfinished; shared code, earlier dependencies and cleanup remain. After/main: complete source. Cloud resources and retained evidence are still required.",
       "prerequisite_status": "See standalone learner page; source availability does not establish Azure starting state.",
       "implementation": "ai300/demos.py:retrieval_chunks",
       "source_paths": [
@@ -126,9 +126,9 @@
         "ai300/core.py",
         "ai300/azure.py",
         "configs/m1-demo1.json",
-        "ai300/azure.py",
         "data/corpus.jsonl",
-        "data/queries.jsonl"
+        "data/queries.jsonl",
+        "ai300/exercises.py"
       ],
       "dependency_paths": [
         "config.local.json",
@@ -137,7 +137,8 @@
         "data/queries.jsonl"
       ],
       "runtime_status": "NOT RUN",
-      "evidence_pattern": "evidence/m1-demo1/<UTC-uuid>/step-<N>-<uuid>/report.json"
+      "evidence_pattern": "evidence/m1-demo1/<UTC-uuid>/step-<N>-<uuid>/report.json",
+      "starter_function": "retrieval_chunks"
     },
     {
       "stem": "m1-demo2",
@@ -145,8 +146,8 @@
       "clip": 3,
       "title": "Demo: Run hybrid search and semantic reranking in Azure",
       "folder": "module1/m1-c3",
-      "before_branch": null,
-      "start_branch": "m1-demo2-after",
+      "before_branch": "m1-demo2-before",
+      "start_branch": "m1-demo2-before",
       "after_branch": "m1-demo2-after",
       "objectives": [
         "TO1",
@@ -203,7 +204,7 @@
         "lab-down": "module1/m1-c3/scripts/lab-down.sh"
       },
       "status": "IMPLEMENTED_SOURCE_AZURE_RUNTIME_NOT_RUN",
-      "branch_semantics": "Operational reference: complete source is supplied; genuine cloud state and retained dependency artifacts distinguish this exercise.",
+      "branch_semantics": "Before: only this demo orchestration function is unfinished; shared code, earlier dependencies and cleanup remain. After/main: complete source. Cloud resources and retained evidence are still required.",
       "prerequisite_status": "See standalone learner page; source availability does not establish Azure starting state.",
       "implementation": "ai300/demos.py:hybrid_search",
       "source_paths": [
@@ -211,8 +212,8 @@
         "ai300/core.py",
         "ai300/azure.py",
         "configs/m1-demo2.json",
-        "ai300/azure.py",
-        "data/queries.jsonl"
+        "data/queries.jsonl",
+        "ai300/exercises.py"
       ],
       "dependency_paths": [
         "config.local.json",
@@ -220,7 +221,8 @@
         "data/queries.jsonl"
       ],
       "runtime_status": "NOT RUN",
-      "evidence_pattern": "evidence/m1-demo2/<UTC-uuid>/step-<N>-<uuid>/report.json"
+      "evidence_pattern": "evidence/m1-demo2/<UTC-uuid>/step-<N>-<uuid>/report.json",
+      "starter_function": "hybrid_search"
     },
     {
       "stem": "m1-demo3",
@@ -228,8 +230,8 @@
       "clip": 5,
       "title": "Demo: Evaluate RAG variants with Azure services",
       "folder": "module1/m1-c5",
-      "before_branch": null,
-      "start_branch": "m1-demo3-after",
+      "before_branch": "m1-demo3-before",
+      "start_branch": "m1-demo3-before",
       "after_branch": "m1-demo3-after",
       "objectives": [
         "TO1",
@@ -295,7 +297,7 @@
         "lab-down": "module1/m1-c5/scripts/lab-down.sh"
       },
       "status": "IMPLEMENTED_SOURCE_AZURE_RUNTIME_NOT_RUN",
-      "branch_semantics": "Operational reference: complete source is supplied; genuine cloud state and retained dependency artifacts distinguish this exercise.",
+      "branch_semantics": "Before: only this demo orchestration function is unfinished; shared code, earlier dependencies and cleanup remain. After/main: complete source. Cloud resources and retained evidence are still required.",
       "prerequisite_status": "See standalone learner page; source availability does not establish Azure starting state.",
       "implementation": "ai300/demos.py:rag_ab",
       "source_paths": [
@@ -303,9 +305,8 @@
         "ai300/core.py",
         "ai300/azure.py",
         "configs/m1-demo3.json",
-        "ai300/azure.py",
-        "ai300/core.py",
-        "data/queries.jsonl"
+        "data/queries.jsonl",
+        "ai300/exercises.py"
       ],
       "dependency_paths": [
         "config.local.json",
@@ -315,7 +316,8 @@
       ],
       "runtime_status": "NOT RUN",
       "evidence_pattern": "evidence/m1-demo3/<UTC-uuid>/step-<N>-<uuid>/report.json",
-      "human_quality_review": "Hash-bound semantic correctness and support review of actual output/context is required; automatic answer_support_proxy cannot approve acceptance."
+      "human_quality_review": "Hash-bound semantic correctness and support review of actual output/context is required; automatic answer_support_proxy cannot approve acceptance.",
+      "starter_function": "rag_ab"
     },
     {
       "stem": "m2-demo1",
@@ -323,8 +325,8 @@
       "clip": 2,
       "title": "Demo: Fine-tune domain embeddings in Azure ML",
       "folder": "module2/m2-c2",
-      "before_branch": null,
-      "start_branch": "m2-demo1-after",
+      "before_branch": "m2-demo1-before",
+      "start_branch": "m2-demo1-before",
       "after_branch": "m2-demo1-after",
       "objectives": [
         "TO1",
@@ -385,7 +387,7 @@
         "lab-down": "module2/m2-c2/scripts/lab-down.sh"
       },
       "status": "IMPLEMENTED_SOURCE_AZURE_RUNTIME_NOT_RUN",
-      "branch_semantics": "Operational reference: complete source is supplied; genuine cloud state and retained dependency artifacts distinguish this exercise.",
+      "branch_semantics": "Before: only this demo orchestration function is unfinished; shared code, earlier dependencies and cleanup remain. After/main: complete source. Cloud resources and retained evidence are still required.",
       "prerequisite_status": "See standalone learner page; source availability does not establish Azure starting state.",
       "implementation": "ai300/demos.py:embedding_train",
       "source_paths": [
@@ -395,7 +397,8 @@
         "configs/m2-demo1.json",
         "jobs/train_embedding.py",
         "ai300/ml.py",
-        "data/embedding-pairs.jsonl"
+        "data/embedding-pairs.jsonl",
+        "ai300/exercises.py"
       ],
       "dependency_paths": [
         "config.local.json",
@@ -404,7 +407,8 @@
         "data/embedding-pairs.jsonl"
       ],
       "runtime_status": "NOT RUN",
-      "evidence_pattern": "evidence/m2-demo1/<UTC-uuid>/step-<N>-<uuid>/report.json"
+      "evidence_pattern": "evidence/m2-demo1/<UTC-uuid>/step-<N>-<uuid>/report.json",
+      "starter_function": "embedding_train"
     },
     {
       "stem": "m2-demo2",
@@ -412,8 +416,8 @@
       "clip": 4,
       "title": "Demo: Generate and version synthetic data with Foundry",
       "folder": "module2/m2-c4",
-      "before_branch": null,
-      "start_branch": "m2-demo2-after",
+      "before_branch": "m2-demo2-before",
+      "start_branch": "m2-demo2-before",
       "after_branch": "m2-demo2-after",
       "objectives": [
         "TO2",
@@ -472,7 +476,7 @@
         "lab-down": "module2/m2-c4/scripts/lab-down.sh"
       },
       "status": "IMPLEMENTED_SOURCE_AZURE_RUNTIME_NOT_RUN",
-      "branch_semantics": "Operational reference: complete source is supplied; genuine cloud state and retained dependency artifacts distinguish this exercise.",
+      "branch_semantics": "Before: only this demo orchestration function is unfinished; shared code, earlier dependencies and cleanup remain. After/main: complete source. Cloud resources and retained evidence are still required.",
       "prerequisite_status": "See standalone learner page; source availability does not establish Azure starting state.",
       "implementation": "ai300/demos.py:synthetic_data",
       "source_paths": [
@@ -480,8 +484,8 @@
         "ai300/core.py",
         "ai300/azure.py",
         "configs/m2-demo2.json",
-        "ai300/azure.py",
-        "data/corpus.jsonl"
+        "data/corpus.jsonl",
+        "ai300/exercises.py"
       ],
       "dependency_paths": [
         "config.local.json",
@@ -489,7 +493,8 @@
         "data/corpus.jsonl"
       ],
       "runtime_status": "NOT RUN",
-      "evidence_pattern": "evidence/m2-demo2/<UTC-uuid>/step-<N>-<uuid>/report.json"
+      "evidence_pattern": "evidence/m2-demo2/<UTC-uuid>/step-<N>-<uuid>/report.json",
+      "starter_function": "synthetic_data"
     },
     {
       "stem": "m2-demo3",
@@ -497,8 +502,8 @@
       "clip": 5,
       "title": "Demo: Train a LoRA adapter in Azure ML",
       "folder": "module2/m2-c5",
-      "before_branch": null,
-      "start_branch": "m2-demo3-after",
+      "before_branch": "m2-demo3-before",
+      "start_branch": "m2-demo3-before",
       "after_branch": "m2-demo3-after",
       "objectives": [
         "TO2",
@@ -561,7 +566,7 @@
         "lab-down": "module2/m2-c5/scripts/lab-down.sh"
       },
       "status": "IMPLEMENTED_SOURCE_AZURE_RUNTIME_NOT_RUN",
-      "branch_semantics": "Operational reference: complete source is supplied; genuine cloud state and retained dependency artifacts distinguish this exercise.",
+      "branch_semantics": "Before: only this demo orchestration function is unfinished; shared code, earlier dependencies and cleanup remain. After/main: complete source. Cloud resources and retained evidence are still required.",
       "prerequisite_status": "See standalone learner page; source availability does not establish Azure starting state.",
       "implementation": "ai300/demos.py:lora_train",
       "source_paths": [
@@ -571,7 +576,8 @@
         "configs/m2-demo3.json",
         "jobs/train_lora.py",
         "jobs/common.py",
-        "environments/train-conda.yml"
+        "environments/train-conda.yml",
+        "ai300/exercises.py"
       ],
       "dependency_paths": [
         "config.local.json",
@@ -580,7 +586,8 @@
         "environments/train-conda.yml"
       ],
       "runtime_status": "NOT RUN",
-      "evidence_pattern": "evidence/m2-demo3/<UTC-uuid>/step-<N>-<uuid>/report.json"
+      "evidence_pattern": "evidence/m2-demo3/<UTC-uuid>/step-<N>-<uuid>/report.json",
+      "starter_function": "lora_train"
     },
     {
       "stem": "m2-demo4",
@@ -588,8 +595,8 @@
       "clip": 6,
       "title": "Demo: Tune LoRA rank and select checkpoints in Azure ML",
       "folder": "module2/m2-c6",
-      "before_branch": null,
-      "start_branch": "m2-demo4-after",
+      "before_branch": "m2-demo4-before",
+      "start_branch": "m2-demo4-before",
       "after_branch": "m2-demo4-after",
       "objectives": [
         "TO2",
@@ -651,7 +658,7 @@
         "lab-down": "module2/m2-c6/scripts/lab-down.sh"
       },
       "status": "IMPLEMENTED_SOURCE_AZURE_RUNTIME_NOT_RUN",
-      "branch_semantics": "Operational reference: complete source is supplied; genuine cloud state and retained dependency artifacts distinguish this exercise.",
+      "branch_semantics": "Before: only this demo orchestration function is unfinished; shared code, earlier dependencies and cleanup remain. After/main: complete source. Cloud resources and retained evidence are still required.",
       "prerequisite_status": "See standalone learner page; source availability does not establish Azure starting state.",
       "implementation": "ai300/demos.py:lora_select",
       "source_paths": [
@@ -660,7 +667,8 @@
         "ai300/azure.py",
         "configs/m2-demo4.json",
         "jobs/train_lora.py",
-        "ai300/ml.py"
+        "ai300/ml.py",
+        "ai300/exercises.py"
       ],
       "dependency_paths": [
         "config.local.json",
@@ -668,7 +676,8 @@
         "ai300/ml.py"
       ],
       "runtime_status": "NOT RUN",
-      "evidence_pattern": "evidence/m2-demo4/<UTC-uuid>/step-<N>-<uuid>/report.json"
+      "evidence_pattern": "evidence/m2-demo4/<UTC-uuid>/step-<N>-<uuid>/report.json",
+      "starter_function": "lora_select"
     },
     {
       "stem": "m3-demo1",
@@ -676,8 +685,8 @@
       "clip": 2,
       "title": "Demo: Evaluate fine-tuned candidates in Azure ML",
       "folder": "module3/m3-c2",
-      "before_branch": null,
-      "start_branch": "m3-demo1-after",
+      "before_branch": "m3-demo1-before",
+      "start_branch": "m3-demo1-before",
       "after_branch": "m3-demo1-after",
       "objectives": [
         "TO2",
@@ -741,7 +750,7 @@
         "lab-down": "module3/m3-c2/scripts/lab-down.sh"
       },
       "status": "IMPLEMENTED_SOURCE_AZURE_RUNTIME_NOT_RUN",
-      "branch_semantics": "Operational reference: complete source is supplied; genuine cloud state and retained dependency artifacts distinguish this exercise.",
+      "branch_semantics": "Before: only this demo orchestration function is unfinished; shared code, earlier dependencies and cleanup remain. After/main: complete source. Cloud resources and retained evidence are still required.",
       "prerequisite_status": "See standalone learner page; source availability does not establish Azure starting state.",
       "implementation": "ai300/demos.py:model_evaluate",
       "source_paths": [
@@ -750,7 +759,8 @@
         "ai300/azure.py",
         "configs/m3-demo1.json",
         "jobs/evaluate.py",
-        "jobs/common.py"
+        "jobs/common.py",
+        "ai300/exercises.py"
       ],
       "dependency_paths": [
         "config.local.json",
@@ -759,7 +769,8 @@
       ],
       "runtime_status": "NOT RUN",
       "evidence_pattern": "evidence/m3-demo1/<UTC-uuid>/step-<N>-<uuid>/report.json",
-      "human_quality_review": "Hash-bound semantic correctness and support review of actual output/context is required; automatic answer_support_proxy cannot approve acceptance."
+      "human_quality_review": "Hash-bound semantic correctness and support review of actual output/context is required; automatic answer_support_proxy cannot approve acceptance.",
+      "starter_function": "model_evaluate"
     },
     {
       "stem": "m3-demo2",
@@ -767,8 +778,8 @@
       "clip": 3,
       "title": "Demo: Deploy a versioned model to Azure ML",
       "folder": "module3/m3-c3",
-      "before_branch": null,
-      "start_branch": "m3-demo2-after",
+      "before_branch": "m3-demo2-before",
+      "start_branch": "m3-demo2-before",
       "after_branch": "m3-demo2-after",
       "objectives": [
         "TO2",
@@ -831,7 +842,7 @@
         "lab-down": "module3/m3-c3/scripts/lab-down.sh"
       },
       "status": "IMPLEMENTED_SOURCE_AZURE_RUNTIME_NOT_RUN",
-      "branch_semantics": "Operational reference: complete source is supplied; genuine cloud state and retained dependency artifacts distinguish this exercise.",
+      "branch_semantics": "Before: only this demo orchestration function is unfinished; shared code, earlier dependencies and cleanup remain. After/main: complete source. Cloud resources and retained evidence are still required.",
       "prerequisite_status": "See standalone learner page; source availability does not establish Azure starting state.",
       "implementation": "ai300/demos.py:model_deploy",
       "source_paths": [
@@ -840,7 +851,8 @@
         "ai300/azure.py",
         "configs/m3-demo2.json",
         "serving/score.py",
-        "environments/serve-conda.yml"
+        "environments/serve-conda.yml",
+        "ai300/exercises.py"
       ],
       "dependency_paths": [
         "config.local.json",
@@ -848,7 +860,8 @@
         "environments/serve-conda.yml"
       ],
       "runtime_status": "NOT RUN",
-      "evidence_pattern": "evidence/m3-demo2/<UTC-uuid>/step-<N>-<uuid>/report.json"
+      "evidence_pattern": "evidence/m3-demo2/<UTC-uuid>/step-<N>-<uuid>/report.json",
+      "starter_function": "model_deploy"
     },
     {
       "stem": "m3-demo3",
@@ -856,8 +869,8 @@
       "clip": 4,
       "title": "Demo: Optimize and test the Azure model endpoint",
       "folder": "module3/m3-c4",
-      "before_branch": null,
-      "start_branch": "m3-demo3-after",
+      "before_branch": "m3-demo3-before",
+      "start_branch": "m3-demo3-before",
       "after_branch": "m3-demo3-after",
       "objectives": [
         "TO2",
@@ -919,7 +932,7 @@
         "lab-down": "module3/m3-c4/scripts/lab-down.sh"
       },
       "status": "IMPLEMENTED_SOURCE_AZURE_RUNTIME_NOT_RUN",
-      "branch_semantics": "Operational reference: complete source is supplied; genuine cloud state and retained dependency artifacts distinguish this exercise.",
+      "branch_semantics": "Before: only this demo orchestration function is unfinished; shared code, earlier dependencies and cleanup remain. After/main: complete source. Cloud resources and retained evidence are still required.",
       "prerequisite_status": "See standalone learner page; source availability does not establish Azure starting state.",
       "implementation": "ai300/demos.py:endpoint_test",
       "source_paths": [
@@ -928,7 +941,7 @@
         "ai300/azure.py",
         "configs/m3-demo3.json",
         "serving/score.py",
-        "ai300/core.py"
+        "ai300/exercises.py"
       ],
       "dependency_paths": [
         "config.local.json",
@@ -937,7 +950,8 @@
       ],
       "runtime_status": "NOT RUN",
       "evidence_pattern": "evidence/m3-demo3/<UTC-uuid>/step-<N>-<uuid>/report.json",
-      "human_quality_review": "Hash-bound semantic correctness and support review of actual output/context is required; automatic answer_support_proxy cannot approve acceptance."
+      "human_quality_review": "Hash-bound semantic correctness and support review of actual output/context is required; automatic answer_support_proxy cannot approve acceptance.",
+      "starter_function": "endpoint_test"
     },
     {
       "stem": "m3-demo4",
@@ -945,8 +959,8 @@
       "clip": 5,
       "title": "Demo: Monitor canary traffic and verify rollback in Azure ML",
       "folder": "module3/m3-c5",
-      "before_branch": null,
-      "start_branch": "m3-demo4-after",
+      "before_branch": "m3-demo4-before",
+      "start_branch": "m3-demo4-before",
       "after_branch": "m3-demo4-after",
       "objectives": [
         "TO2",
@@ -956,7 +970,7 @@
       "steps": [
         {
           "n": 1,
-          "title": "Allocate 90 percent of managed endpoint traffic to the baseline and 10 percent to the candidate; send enough labeled test traffic to meet each gate’s minimum sample size, and record which deployment served each response",
+          "title": "Allocate 90 percent of managed endpoint traffic to the baseline and 10 percent to the candidate; send enough labeled test traffic to meet each gate\u2019s minimum sample size, and record which deployment served each response",
           "command": "./module3/m3-c5/scripts/lab-step.sh 1",
           "source": "ai300/demos.py:canary_rollback",
           "expected_fields": [
@@ -980,7 +994,7 @@
         },
         {
           "n": 3,
-          "title": "Check the candidate’s canary responses and serving metrics against the predeclared gates, and stop promotion on any failure",
+          "title": "Check the candidate\u2019s canary responses and serving metrics against the predeclared gates, and stop promotion on any failure",
           "command": "./module3/m3-c5/scripts/lab-step.sh 3",
           "source": "ai300/demos.py:canary_rollback",
           "expected_fields": [
@@ -1022,7 +1036,7 @@
         "lab-down": "module3/m3-c5/scripts/lab-down.sh"
       },
       "status": "IMPLEMENTED_SOURCE_AZURE_RUNTIME_NOT_RUN",
-      "branch_semantics": "Operational reference: complete source is supplied; genuine cloud state and retained dependency artifacts distinguish this exercise.",
+      "branch_semantics": "Before: only this demo orchestration function is unfinished; shared code, earlier dependencies and cleanup remain. After/main: complete source. Cloud resources and retained evidence are still required.",
       "prerequisite_status": "See standalone learner page; source availability does not establish Azure starting state.",
       "implementation": "ai300/demos.py:canary_rollback",
       "source_paths": [
@@ -1031,7 +1045,7 @@
         "ai300/azure.py",
         "configs/m3-demo4.json",
         "serving/score.py",
-        "ai300/azure.py"
+        "ai300/exercises.py"
       ],
       "dependency_paths": [
         "config.local.json",
@@ -1039,13 +1053,14 @@
         "ai300/azure.py"
       ],
       "runtime_status": "NOT RUN",
-      "evidence_pattern": "evidence/m3-demo4/<UTC-uuid>/step-<N>-<uuid>/report.json"
+      "evidence_pattern": "evidence/m3-demo4/<UTC-uuid>/step-<N>-<uuid>/report.json",
+      "starter_function": "_canary_step"
     }
   ],
-  "status": "SCAFFOLD ONLY",
+  "status": "SOURCE_IMPLEMENTED_AZURE_RUNTIME_NOT_RUN",
   "command_status": "Stable wrappers execute the shared real Azure engine; offline source checks pass, genuine Azure runtime remains NOT RUN.",
-  "dependency_status": "Runtime, data and model dependencies remain to be implemented and verified.",
-  "branch_status": "All demo references are placeholders until implementation and real Azure evidence are complete.",
+  "dependency_status": "Shared source, original data and dependency checks are implemented. Genuine completed Azure runs, reviewed outputs and retained artifacts are still required; Azure runtime NOT RUN.",
+  "branch_status": "Main and per-demo after branches contain complete source; each per-demo before branch leaves only its declared orchestration function unfinished. See docs/exercise-branches.md.",
   "implementation_state": "SOURCE_IMPLEMENTED_OFFLINE_CHECKED_LIVE_AZURE_NOT_RUN",
   "runtime_contract": {
     "engine": "python -m ai300.cli",

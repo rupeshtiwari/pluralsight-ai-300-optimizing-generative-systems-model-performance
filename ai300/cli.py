@@ -3,6 +3,7 @@ import argparse, importlib.util, json, os, re, signal, sys, traceback
 from pathlib import Path
 from .core import ROOT, Hold, Run, require, read, write, digest, source_hashes, validate_splits, validate_demo_spec, now, consumed_config
 from .demos import HANDLERS
+from .exercises import exercise_status, require_implementation
 
 def check_config(demo):
     path=ROOT/'config.local.json'; require(path.exists(),'Copy config.example.json to config.local.json, configure existing Azure resources and pin model commits; see setup/README.md.')
@@ -95,7 +96,7 @@ def main():
             signal.signal(signal.SIGALRM,request_recovery); signal.alarm(1800)
         if args.action=='check':
             validate_demo_spec(args.demo,read(ROOT/'configs'/f'{args.demo}.json'))
-            result={'mode':'OFFLINE_LOGIC_CHECKS_NOT_AZURE_PROOF','data':validate_splits(),'source_files':len(source_hashes()),'runtime':'NOT RUN'}
+            result={'mode':'OFFLINE_LOGIC_CHECKS_NOT_AZURE_PROOF','data':validate_splits(),'source_files':len(source_hashes()),'runtime':'NOT RUN','exercise':exercise_status(args.demo)}
             if not args.offline:
                 check_config(args.demo)
                 from .versioning import client_versions
@@ -105,7 +106,9 @@ def main():
                 from .preflight import live_checks
                 result=live_checks(args.demo,read(ROOT/'config.local.json'))
             print(json.dumps(result,indent=2)); return 0
-        if args.action!='down': check_config(args.demo)
+        if args.action!='down':
+            require_implementation(args.demo)
+            check_config(args.demo)
         if args.action=='up':
             run=Run(args.demo,create=True); print('Initialized:',run.path); print('Azure runtime: NOT RUN. Execute the numbered steps; inspect real responses.'); return 0
         run=Run(args.demo,cleanup_only=args.action=='down'); count=len(next(x for x in read(ROOT/'course-contract.json')['demos'] if x['stem']==args.demo)['steps'])

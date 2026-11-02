@@ -21,10 +21,7 @@ Open `config.local.json` in VS Code. Use actual resource IDs, immutable model co
 ## 2. Check the Source Without Azure
 
 ```bash
-python -m compileall -q ai300 jobs serving
-python -m unittest discover -s tests -v
-python scripts/check_contract.py
-python scripts/check_all.py
+python scripts/check_source.py
 ```
 
 The all-demo check validates every declared specification and invokes all eleven offline preflights. These source checks do not establish model downloads, environment builds, cloud permissions, costs or runtime success.
@@ -48,6 +45,8 @@ Each linked page contains exact prerequisites, source paths/functions, commands,
 | 11 | [Demo: Monitor canary traffic and verify rollback in Azure ML](../module3/m3-c5/README.md) | 1, 2, 3, 4 |
 
 ## 4. Run One Exercise
+
+Main and each after branch contain the ready-to-run source below. For the coding starter, follow [the before/after branch guide](exercise-branches.md), complete the specified function, then use the same commands. Switching branches does not recreate cloud prerequisites or erase consumed-test history.
 
 Example, from the repository root:
 

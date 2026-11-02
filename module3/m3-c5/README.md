@@ -25,12 +25,10 @@ The dedicated baseline endpoint must already exist. If cleanup removed deploymen
 From the cloned repository root:
 
 ```bash
-git switch m3-demo4-after
+git switch m3-demo4-before
 # Activate .venv (Windows Git Bash: source .venv/Scripts/activate)
 source .venv/bin/activate
 ./module3/m3-c5/scripts/preflight_check.sh --offline
-./module3/m3-c5/scripts/preflight_check.sh --live
-./module3/m3-c5/scripts/lab-up.sh
 ```
 
 The offline command needs only Python standard-library source. Live checks use your actual resources; provisioning/inference/jobs can incur charges. `lab-up` prints a unique `evidence/m3-demo4/<UTC-uuid>/` folder. Stay at the repo root.
@@ -42,6 +40,48 @@ python -m ai300.cli --demo m3-demo4 prepare-alert
 ```
 
 This is explicit setup. The numbered metric-inspection step reads the prepared rule; it does not create a forced failure.
+
+## Complete the Starter
+
+The before branch intentionally leaves `ai300/demos.py:_canary_step` unfinished. Open that function in VS Code and implement the numbered actions below using the supplied helpers and configuration. Shared infrastructure, earlier demo implementations and cleanup stay available. Live startup/steps stop with `STARTER` until the placeholder is replaced. An offline preflight checks prerequisites and reports the source state; it does not certify an unfinished solution.
+
+Inspect the complete reference without switching or losing edits:
+
+```bash
+git fetch origin
+git diff HEAD origin/m3-demo4-after -- ai300/demos.py
+```
+
+To run the supplied complete source instead of authoring the function, restore the reference file into this starter checkout, then run the full source checks:
+
+```bash
+git restore --source=origin/m3-demo4-after -- ai300/demos.py
+python scripts/check_source.py
+```
+
+This restore replaces local edits to that file; commit your work first. [All before/after branches](../../docs/exercise-branches.md) explains safe switching and dependency evidence.
+
+## Prepare Dependencies Under the Same Source
+
+The evidence checks hash the complete engine, including `ai300/demos.py`. To reuse prior proof, restore the exact after source as shown above; the completed source matches main and every after reference. If you keep your own implementation, finish all source edits first, then rerun these prerequisite exercises in this order under that same unchanged working tree:
+
+1. [m2-demo2](../../module2/m2-c4/README.md): complete its setup and numbered steps, retain its run folder, and set `config.local.json` → `runs.m2-demo2` to that folder.
+2. [m2-demo3](../../module2/m2-c5/README.md): complete its setup and numbered steps, retain its run folder, and set `config.local.json` → `runs.m2-demo3` to that folder.
+3. [m2-demo4](../../module2/m2-c6/README.md): complete its setup and numbered steps, retain its run folder, and set `config.local.json` → `runs.m2-demo4` to that folder.
+4. [m3-demo1](../../module3/m3-c2/README.md): complete its setup and numbered steps, retain its run folder, and set `config.local.json` → `runs.m3-demo1` to that folder.
+5. [m3-demo2](../../module3/m3-c3/README.md): complete its setup and numbered steps, retain its run folder, and set `config.local.json` → `runs.m3-demo2` to that folder.
+6. [m3-demo3](../../module3/m3-c4/README.md): complete its setup and numbered steps, retain its run folder, and set `config.local.json` → `runs.m3-demo3` to that folder.
+
+Stay on this source tree while running prerequisite wrappers; do not switch to their starter branches or edit source between runs. After all accepted/completed dependency reports are available, initialize this demo. Configuration must also match each dependency’s consumed settings. A mismatch means rerun the affected proof, never rewrite its manifest. [Dependency evidence rules](../../docs/exercise-branches.md#preserve-dependency-evidence).
+
+## Initialize the Live Run
+
+Finish the source and prerequisite runs, then initialize from the repository root:
+
+```bash
+./module3/m3-c5/scripts/preflight_check.sh --live
+./module3/m3-c5/scripts/lab-up.sh
+```
 
 ## Source to Inspect
 

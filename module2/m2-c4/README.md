@@ -20,15 +20,42 @@ Complete [the shared setup](../../setup/README.md), authenticate your permitted 
 From the cloned repository root:
 
 ```bash
-git switch m2-demo2-after
+git switch m2-demo2-before
 # Activate .venv (Windows Git Bash: source .venv/Scripts/activate)
 source .venv/bin/activate
 ./module2/m2-c4/scripts/preflight_check.sh --offline
-./module2/m2-c4/scripts/preflight_check.sh --live
-./module2/m2-c4/scripts/lab-up.sh
 ```
 
 The offline command needs only Python standard-library source. Live checks use your actual resources; provisioning/inference/jobs can incur charges. `lab-up` prints a unique `evidence/m2-demo2/<UTC-uuid>/` folder. Stay at the repo root.
+
+## Complete the Starter
+
+The before branch intentionally leaves `ai300/demos.py:synthetic_data` unfinished. Open that function in VS Code and implement the numbered actions below using the supplied helpers and configuration. Shared infrastructure, earlier demo implementations and cleanup stay available. Live startup/steps stop with `STARTER` until the placeholder is replaced. An offline preflight checks prerequisites and reports the source state; it does not certify an unfinished solution.
+
+Inspect the complete reference without switching or losing edits:
+
+```bash
+git fetch origin
+git diff HEAD origin/m2-demo2-after -- ai300/demos.py
+```
+
+To run the supplied complete source instead of authoring the function, restore the reference file into this starter checkout, then run the full source checks:
+
+```bash
+git restore --source=origin/m2-demo2-after -- ai300/demos.py
+python scripts/check_source.py
+```
+
+This restore replaces local edits to that file; commit your work first. [All before/after branches](../../docs/exercise-branches.md) explains safe switching and dependency evidence.
+
+## Initialize the Live Run
+
+Finish the source and prerequisite runs, then initialize from the repository root:
+
+```bash
+./module2/m2-c4/scripts/preflight_check.sh --live
+./module2/m2-c4/scripts/lab-up.sh
+```
 
 ## Source to Inspect
 
