@@ -73,7 +73,7 @@ Open `ai300/demos.py:hybrid_search` in VS Code (file and named function). Relate
 
 **Result:** the terminal prints the exact retained report path. Open `step-1-<attempt>/report.json` in your run folder; inspect `raw/` beside it. Expected field names: `rows`, `variants`, `@search.score`. These are contracts, not promised values.
 
-**Decision and failure action:** Inspect RRF and semantic reranker scores separately. A candidate is adopted only with improved relevance, no query-type recall regression and latency inside the declared budget. Missing permissions, incomplete jobs, unfilled manual reviews or delayed telemetry produce HOLD. Correct the named prerequisite and retry only the incomplete step. Completed steps are immutable; preserve every failed attempt.
+**Decision and failure action:** Inspect RRF and semantic reranker scores separately. A candidate is adopted only with improved relevance, no query-type Recall@k or nDCG@k regression and latency inside the declared budget. Missing permissions, incomplete jobs, unfilled manual reviews or delayed telemetry produce HOLD. Correct the named prerequisite and retry only the incomplete step. Completed steps are immutable; preserve every failed attempt.
 <a id="step-2"></a>
 
 ### Step 2 — Vary vector weight and candidate depth, then enable semantic reranking with 50 vector candidates and inspect search and reranker scores separately
@@ -84,7 +84,7 @@ Open `ai300/demos.py:hybrid_search` in VS Code (file and named function). Relate
 
 **Result:** the terminal prints the exact retained report path. Open `step-2-<attempt>/report.json` in your run folder; inspect `raw/` beside it. Expected field names: `settings`, `@search.score`, `@search.rerankerScore`. These are contracts, not promised values.
 
-**Decision and failure action:** Inspect RRF and semantic reranker scores separately. A candidate is adopted only with improved relevance, no query-type recall regression and latency inside the declared budget. Missing permissions, incomplete jobs, unfilled manual reviews or delayed telemetry produce HOLD. Correct the named prerequisite and retry only the incomplete step. Completed steps are immutable; preserve every failed attempt.
+**Decision and failure action:** Inspect RRF and semantic reranker scores separately. A candidate is adopted only with improved relevance, no query-type Recall@k or nDCG@k regression and latency inside the declared budget. Missing permissions, incomplete jobs, unfilled manual reviews or delayed telemetry produce HOLD. Correct the named prerequisite and retry only the incomplete step. Completed steps are immutable; preserve every failed attempt.
 <a id="step-3"></a>
 
 ### Step 3 — Compare exact-identifier and paraphrased questions on the same validation set; accept a relevance gain only when no query type regresses
@@ -95,11 +95,11 @@ Open `ai300/demos.py:hybrid_search` in VS Code (file and named function). Relate
 
 **Result:** the terminal prints the exact retained report path. Open `step-3-<attempt>/report.json` in your run folder; inspect `raw/` beside it. Expected field names: `query_type_regressions`, `score_types`, `example_rows`. These are contracts, not promised values.
 
-**Decision and failure action:** Inspect RRF and semantic reranker scores separately. A candidate is adopted only with improved relevance, no query-type recall regression and latency inside the declared budget. Missing permissions, incomplete jobs, unfilled manual reviews or delayed telemetry produce HOLD. Correct the named prerequisite and retry only the incomplete step. Completed steps are immutable; preserve every failed attempt.
+**Decision and failure action:** Inspect RRF and semantic reranker scores separately. A candidate is adopted only with improved relevance, no query-type Recall@k or nDCG@k regression and latency inside the declared budget. Missing permissions, incomplete jobs, unfilled manual reviews or delayed telemetry produce HOLD. Correct the named prerequisite and retry only the incomplete step. Completed steps are immutable; preserve every failed attempt.
 
 ## Interpretation and Next Action
 
-Inspect RRF and semantic reranker scores separately. A candidate is adopted only with improved relevance, no query-type recall regression and latency inside the declared budget.
+Inspect RRF and semantic reranker scores separately. A candidate is adopted only with improved relevance, no query-type Recall@k or nDCG@k regression and latency inside the declared budget.
 
 A source check, completed job, passing validation gate, frozen final test and rollback proof are distinct states. If a gate rejects a candidate, retain the baseline and inspect individual failures. Canary step3 can stop promotion; still run step4 to exercise baseline restoration.
 
