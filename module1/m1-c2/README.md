@@ -61,6 +61,14 @@ Finish the source and prerequisite runs, then initialize from the repository roo
 
 Open `ai300/demos.py:retrieval_chunks` in VS Code (file and named function). Related source: `ai300/demos.py`, `ai300/core.py`, `ai300/azure.py`, `configs/m1-demo1.json`, `data/corpus.jsonl`, `data/queries.jsonl`.
 
+## Jump to a Step
+
+| Step | Action |
+|---|---|
+| [Step 1](#step-1) | Query one Azure AI Search Free-tier index with a chunk_size pre-filter to select 64-, 128-, or 192-token chunks of the same corpus, encoded with all-MiniLM-L6-v2 |
+| [Step 2](#step-2) | Vary vector candidate depth, convert single-vector query scores back to cosine similarity in the Python client, and apply a cutoff; inspect retained and rejected results |
+| [Step 3](#step-3) | Compare Recall@k, boundary failures, and latency while changing one control at a time; keep the configuration with the best recall within the latency budget |
+
 ## Numbered Steps
 
 <a id="step-1"></a>
