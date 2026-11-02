@@ -423,58 +423,12 @@ def prepare_canary_alert(a):
     return {'alert_id':alert,'status':'CONFIGURED_NOT_REHEARSED'}
 
 def _canary_step(run,n):
-    a=Azure(run); release=run.dependency('m3-demo3',3); require(release['release_decision']=='PASS','Final-test release gate failed; canary is blocked.')
-    frozen=release['frozen_release']; resource=endpoint_resource(run)
-    require(deployment_snapshot(a,run.config['candidate_deployment'])==frozen['deployment_snapshot'],'Candidate changed after frozen final test.')
-    baseline_snapshot=deployment_snapshot(a,run.config['baseline_deployment'])
-    run.raw('canary-baseline-snapshot-check',{'expected':frozen['baseline_deployment_snapshot'],'observed':baseline_snapshot,'matches':baseline_snapshot==frozen['baseline_deployment_snapshot']})
-    require(baseline_snapshot==frozen['baseline_deployment_snapshot'],'Baseline changed after frozen final test.')
-    course_endpoint(a)
-    response,_=a.invoke(endpoint_payload(validation(domain=False)[0],frozen['max_new_tokens']),run.config['baseline_deployment'])
-    matches=response['deployment']==a.c['baseline_deployment'] and response['model_identity']==frozen['baseline_model_identity']
-    run.raw('canary-baseline-model-check',{'expected':frozen['baseline_model_identity'],'observed_response':response,'matches':matches})
-    require(matches,'Baseline model identity differs from frozen release.')
-    if n==1:
-        questions=questions_with_context(a,validation(domain=False)); rows=[]
-        run.state['canary_started_at']=now(); run.state['baseline_safety_restored']=False; run.save()
-        traffic=set_traffic(a,90,10); workload_clock=time.monotonic()
-        for i in range(run.spec['max_requests']):
-            q=questions[i%len(questions)]; response,elapsed=a.invoke(endpoint_payload(q,frozen['max_new_tokens']))
-            expected={a.c['baseline_deployment']:frozen['baseline_model_identity'],a.c['candidate_deployment']:frozen['model_identity']}
-            require(response['deployment'] in expected and response['model_identity']==expected[response['deployment']],'Canary routed identity mismatch.')
-            rows.append({'request':i,'query_id':q['query_id'],'query_type':q['query_type'],'question':q['question'],'supplied_context':q['retrieved_context'],'reference_response':q['response'],'deployment':response['deployment'],'model_identity':response['model_identity'],'latency_ms':elapsed,'output_tokens':response['output_tokens'],'raw_response':response['response'],**answer_metrics(response['response'],q)})
-            counts,enough=sample_counts(rows,expected,run.spec['minimum_by_query_type'])
-            if i+1>=run.spec['requests'] and enough and time.monotonic()-workload_clock>=run.spec.get('minimum_observation_seconds',0): break
-        require(enough and time.monotonic()-workload_clock>=run.spec.get('minimum_observation_seconds',0),'Maximum canary workload exhausted before every deployment/query-type sample minimum; baseline will be restored.')
-        run.state['canary_finished_at']=now(); run.save(); review_path,_=prepare_manual_review(run,'canary',rows)
-        return {'traffic':traffic,'rows':rows,'sample_counts':counts,'manual_review_path':str(review_path),'population':'labeled synthetic traffic; repeated questions are not independent user evidence','canary_started_at':run.state['canary_started_at'],'canary_finished_at':run.state['canary_finished_at']}
-    if n==2:
-        alert,spec=canary_alert_spec(a); actual=a.arm('GET',alert,version='2018-03-01')
-        require(all(actual.get('properties',{}).get(k)==v for k,v in spec['properties'].items()),'Prepared alert differs from declared scope, metric, threshold, deployment or action group.')
-        snapshot=monitor_snapshot(a,run.state['canary_started_at'],run.state['canary_finished_at']); require_monitor_coverage(snapshot,run,[a.c['baseline_deployment'],a.c['candidate_deployment']])
-        return {'alert_id':alert,'alert':actual,'metric_snapshot':snapshot,'telemetry_status':'AVAILABLE','next_action':'Review every canary answer against its retained supplied context before step3.'}
-    if n==3:
-        previous=run.previous(1); reviewed=manual_review(run,'canary',previous['rows'])
-        candidate=[r for r in reviewed['rows'] if r['deployment']==a.c['candidate_deployment']]; baseline=[r for r in reviewed['rows'] if r['deployment']==a.c['baseline_deployment']]
-        checks=quality_checks(candidate,run.spec['quality_gates'],run.spec['minimum_by_query_type'],baseline)
-        snapshot=run.previous(2)['metric_snapshot']; checks.update(resource_checks(snapshot,run,[a.c['candidate_deployment']]))
-        latency=metric_values(snapshot,'RequestLatency_P95',deployment=a.c['candidate_deployment'],resource=resource); checks['operational_p95']=bool(latency) and max(latency)<=run.spec['latency_budget_ms']
-        failed=[key for key,value in checks.items() if not value]
-        if failed: set_traffic(a,100,0)
-        return {'decision':'STOP_PROMOTION' if failed else 'ELIGIBLE_PENDING_ROLLBACK','promotion':'STOPPED' if failed else 'PENDING_DECISION','failed_gates':failed,'gate_checks':checks,'manual_semantic_review':reviewed,'metric_snapshot':snapshot,'next_action':'Always exercise rollback in step4, even when every gate passed.'}
-    traffic=set_traffic(a,100,0)
-    record=run.path/'rollback-recovery-observations.json'
-    if 'recovery_observations' not in run.state:
-        questions=questions_with_context(a,validation(domain=False))
-        recovery=endpoint_workload(a,questions,frozen['max_new_tokens'],None,frozen['baseline_model_identity'],minimum_seconds=run.spec.get('minimum_observation_seconds',0),max_requests=run.spec.get('max_observation_requests'))
-        write(record,recovery); run.state['recovery_observations']={'path':str(record),'sha256':digest(record)}; run.save()
-    require(digest(record)==run.state['recovery_observations']['sha256'],'Retained recovery workload changed; never replace its telemetry window.')
-    recovery=read(record)
-    if run.spec.get('minimum_observation_seconds',0): require(recovery.get('window_complete'),'Recovery observation window incomplete; retain baseline and inspect request budget.')
-    require(all(r['deployment']==a.c['baseline_deployment'] for r in recovery['rows']),'Routed response did not return baseline after rollback.')
-    snapshot=monitor_snapshot(a,recovery['window_start'],recovery['window_end']); require_monitor_coverage(snapshot,run,[a.c['baseline_deployment']])
-    latency=metric_values(snapshot,'RequestLatency_P95',deployment=a.c['baseline_deployment'],resource=resource); require(max(latency)<=run.spec['latency_budget_ms'],'Baseline operational recovery gate still fails.')
-    return {'traffic':traffic,'routed_model_identities':[r['model_identity'] for r in recovery['rows']],'routed_responses':recovery,'recovery_metrics':snapshot,'rollback_verified':True,'canary_decision':run.previous(3)['decision'],'population':'controlled course workload'}
+    """Implement Demo: Monitor canary traffic and verify rollback in Azure ML using the numbered learner steps."""
+    # Step 1: Allocate 90 percent of managed endpoint traffic to the baseline and 10 percent to the candidate; send enough labeled test traffic to meet each gate’s minimum sample size, and record which deployment served each response
+    # Step 2: Inspect Request Latency P95 split by deployment, Requests Per Minute split by deployment and status-code class, and the prepared Azure Monitor alert rule on Request Latency P95
+    # Step 3: Check the candidate’s canary responses and serving metrics against the predeclared gates, and stop promotion on any failure
+    # Step 4: Exercise the rollback path by restoring 100 percent traffic to the baseline, then verify the routed model identity and responses before the promotion decision
+    raise Hold("STARTER: Implement _canary_step; compare origin/m3-demo4-after.")
 
 def canary_rollback(run,n):
     try: return _canary_step(run,n)
