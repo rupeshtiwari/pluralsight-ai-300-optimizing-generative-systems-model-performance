@@ -379,7 +379,7 @@ def monitor_snapshot(a,start=None,end=None):
         snapshots.append({'resource':scope,'response':response})
     return {'window_start':start,'window_end':end,'snapshots':snapshots}
 
-def metric_values(snapshot,name,deployment=None,resource=None):
+def metric_values(snapshot,name,deployment=None,resource=None,status_code_class=None):
     values=[]
     for group in snapshot['snapshots']:
         if resource is not None and group['resource'].lower()!=resource.lower(): continue
@@ -388,6 +388,7 @@ def metric_values(snapshot,name,deployment=None,resource=None):
             for series in metric.get('timeseries',[]):
                 dimensions={m['name']['value'].lower():m['value'] for m in series.get('metadatavalues',[])}
                 if deployment is not None and dimensions.get('deployment')!=deployment: continue
+                if status_code_class is not None and dimensions.get('statuscodeclass','').casefold()!=status_code_class.casefold(): continue
                 for point in series.get('data',[]):
                     value=point.get('average')
                     if value is None: continue
@@ -495,8 +496,20 @@ def _canary_step(run,n):
     if run.spec.get('minimum_observation_seconds',0): require(recovery.get('window_complete'),'Recovery observation window incomplete; retain baseline and inspect request budget.')
     require(all(r['deployment']==a.c['baseline_deployment'] for r in recovery['rows']),'Routed response did not return baseline after rollback.')
     snapshot=monitor_snapshot(a,recovery['window_start'],recovery['window_end']); require_monitor_coverage(snapshot,run,[a.c['baseline_deployment']])
-    latency=metric_values(snapshot,'RequestLatency_P95',deployment=a.c['baseline_deployment'],resource=resource); require(max(latency)<=run.spec['latency_budget_ms'],'Baseline operational recovery gate still fails.')
-    return {'traffic':traffic,'routed_model_identities':[r['model_identity'] for r in recovery['rows']],'routed_responses':recovery,'recovery_metrics':snapshot,'rollback_verified':True,'canary_decision':run.previous(3)['decision'],'population':'controlled course workload'}
+    baseline=a.c['baseline_deployment']
+    latency=metric_values(snapshot,'RequestLatency_P95',deployment=baseline,resource=resource)
+    checks=resource_checks(snapshot,run,[baseline]); checks['operational_p95']=bool(latency) and max(latency)<=run.spec['latency_budget_ms']
+    outcomes={kind:metric_values(snapshot,'RequestsPerMinute',deployment=baseline,resource=resource,status_code_class=kind) for kind in ('2xx','4xx','5xx')}
+    checks['successful_requests_observed']=bool(outcomes['2xx']) and max(outcomes['2xx'])>0
+    checks['no_client_request_errors']=not any(value>0 for value in outcomes['4xx'])
+    checks['no_server_request_errors']=not any(value>0 for value in outcomes['5xx'])
+    run.raw('rollback-recovery-operational-gates',{'gate_checks':checks,'request_outcome_rates':outcomes,'metric_snapshot':snapshot})
+    reviewed=manual_review(run,'rollback-recovery',recovery['rows'])
+    checks.update(quality_checks(reviewed['rows'],run.spec['quality_gates'],run.spec['minimum_by_query_type']))
+    failed=[name for name,passed in checks.items() if not passed]
+    run.raw('rollback-recovery-gates',{'gate_checks':checks,'failed_gates':failed,'manual_semantic_review':reviewed})
+    require(not failed,'Baseline recovery gates failed: '+', '.join(failed)+'. Keep 100 percent baseline traffic and investigate; rollback is not verified.')
+    return {'traffic':traffic,'routed_model_identities':[r['model_identity'] for r in recovery['rows']],'routed_responses':recovery,'recovery_metrics':snapshot,'request_outcome_rates':outcomes,'gate_checks':checks,'failed_gates':failed,'manual_semantic_review':reviewed,'rollback_verified':True,'canary_decision':run.previous(3)['decision'],'population':'controlled course workload'}
 
 def canary_rollback(run,n):
     try: return _canary_step(run,n)

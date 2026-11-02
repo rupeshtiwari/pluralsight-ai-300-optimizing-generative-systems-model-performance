@@ -78,6 +78,14 @@ Finish the source and prerequisite runs, then initialize from the repository roo
 
 Open `ai300/demos.py:endpoint_test` in VS Code (file and named function). Related source: `ai300/demos.py`, `ai300/core.py`, `ai300/azure.py`, `configs/m3-demo3.json`, `serving/score.py`.
 
+## Jump to a Step
+
+| Step | Action |
+|---|---|
+| [Step 1](#step-1) | Benchmark the candidate deployment directly with a fixed validation workload; compare output-length limits using latency, output tokens, CPU and memory utilization, and answer quality |
+| [Step 2](#step-2) | Freeze the selected model, environment, and inference settings (output-length limit and request timeout), then run the untouched domain and general-capability test set against the candidate and baseline deployments |
+| [Step 3](#step-3) | Store the final test report and release configuration with the model version in Azure ML |
+
 ## Numbered Steps
 
 <a id="step-1"></a>
