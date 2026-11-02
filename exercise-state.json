@@ -3,7 +3,7 @@
   "demo": "m1-demo2",
   "before_branch": "m1-demo2-before",
   "after_branch": "m1-demo2-after",
-  "reference_main": "ec3fd306d02e18a7b9de2c9aaf270fea3fd57aaa",
+  "reference_main": "bcbba6db34d94e507a7d7596e6a279c43b7a7e9f",
   "source_file": "ai300/demos.py",
   "omitted_function": "hybrid_search",
   "completed_function_sha256": "81f51c50bdf8d73d31e9c445f9cb6aeaee5662e2bb0505a3b1bbe07a397239ee",

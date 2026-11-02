@@ -61,6 +61,14 @@ Finish the source and prerequisite runs, then initialize from the repository roo
 
 Open `ai300/demos.py:embedding_train` in VS Code (file and named function). Related source: `ai300/demos.py`, `ai300/core.py`, `ai300/azure.py`, `configs/m2-demo1.json`, `jobs/train_embedding.py`, `ai300/ml.py`, `data/embedding-pairs.jsonl`.
 
+## Jump to a Step
+
+| Step | Action |
+|---|---|
+| [Step 1](#step-1) | Configure a Sentence Transformers contrastive training script for the selected bge-small-en-v1.5 model with reviewed positive pairs and hard negatives, then submit an Azure ML CPU command job |
+| [Step 2](#step-2) | Inspect the completed job and confirm its code, environment, and data versions; select the checkpoint with the best validation metrics and keep the job output |
+| [Step 3](#step-3) | Encode corpus and queries with the selected checkpoint; populate its dedicated vector field in the same index, filter to the same chunk_size, and keep the tuned field only if its held-out relevance beats both the all-MiniLM-L6-v2 and base bge-small-en-v1.5 fields |
+
 ## Numbered Steps
 
 <a id="step-1"></a>
