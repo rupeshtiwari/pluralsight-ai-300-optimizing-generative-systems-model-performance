@@ -61,6 +61,14 @@ Finish the source and prerequisite runs, then initialize from the repository roo
 
 Open `ai300/demos.py:synthetic_data` in VS Code (file and named function). Related source: `ai300/demos.py`, `ai300/core.py`, `ai300/azure.py`, `configs/m2-demo2.json`, `data/corpus.jsonl`.
 
+## Jump to a Step
+
+| Step | Action |
+|---|---|
+| [Step 1](#step-1) | Call the gpt-5.6-luna deployment in Microsoft Foundry to generate support-response examples from training-source documents, logging source, prompt, and generator versions |
+| [Step 2](#step-2) | Check JSONL structure, duplicate prompts, source references, and split leakage with Python; manually accept or reject examples by checking their claims against the source |
+| [Step 3](#step-3) | Register accepted examples, rejection reasons, hashes, and separate validation and test files as versioned Azure ML data assets |
+
 ## Numbered Steps
 
 <a id="step-1"></a>
