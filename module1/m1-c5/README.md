@@ -61,6 +61,10 @@ Finish the source and prerequisite runs, then initialize from the repository roo
 
 Open `ai300/demos.py:rag_ab` in VS Code (file and named function). Related source: `ai300/demos.py`, `ai300/core.py`, `ai300/azure.py`, `configs/m1-demo3.json`, `data/queries.jsonl`.
 
+## Predeclared Experiment Contract
+
+Before the first retrieval, `rag_ab` retains `ab-experiment-contract.json` in the run root. It records `primary_metric`, the fixed session count and stop rule, A/B retrieval settings, generation settings and declaration time. The shipped configuration declares `manual_answer_support` and `fixed_sessions_no_early_efficacy` for 24 synthetic sessions. Open this file before dispatching the experiment. Assignments retain its SHA-256; changing the contract or its settings requires a new run. Preserve the original run and its failed or interrupted observations.
+
 ## Numbered Steps
 
 <a id="step-1"></a>
