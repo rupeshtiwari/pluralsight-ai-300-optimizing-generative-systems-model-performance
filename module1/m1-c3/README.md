@@ -61,6 +61,14 @@ Finish the source and prerequisite runs, then initialize from the repository roo
 
 Open `ai300/demos.py:hybrid_search` in VS Code (file and named function). Related source: `ai300/demos.py`, `ai300/core.py`, `ai300/azure.py`, `configs/m1-demo2.json`, `data/queries.jsonl`.
 
+## Jump to a Step
+
+| Step | Action |
+|---|---|
+| [Step 1](#step-1) | Send text and vector queries together to Azure AI Search; compare its reciprocal rank fusion results with separate keyword and vector searches |
+| [Step 2](#step-2) | Vary vector weight and candidate depth, then enable semantic reranking with 50 vector candidates and inspect search and reranker scores separately |
+| [Step 3](#step-3) | Compare exact-identifier and paraphrased questions on the same validation set; accept a relevance gain only when no query type regresses |
+
 ## Numbered Steps
 
 <a id="step-1"></a>
