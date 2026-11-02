@@ -75,6 +75,14 @@ Finish the source and prerequisite runs, then initialize from the repository roo
 
 Open `ai300/demos.py:model_evaluate` in VS Code (file and named function). Related source: `ai300/demos.py`, `ai300/core.py`, `ai300/azure.py`, `configs/m3-demo1.json`, `jobs/evaluate.py`, `jobs/common.py`.
 
+## Jump to a Step
+
+| Step | Action |
+|---|---|
+| [Step 1](#step-1) | Submit an Azure ML evaluation job for the base model and both shortlisted adapters using the same domain and general-capability validation questions, retrieved context from the adopted search configuration, and generation settings |
+| [Step 2](#step-2) | Inspect the completed job in MLflow, comparing task correctness, answer support, and schema validity by query type and reading concrete failures |
+| [Step 3](#step-3) | Select the candidate against the validation gates and record the job, dataset, configuration, and per-example results |
+
 ## Numbered Steps
 
 <a id="step-1"></a>

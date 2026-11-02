@@ -145,7 +145,7 @@ All **11 complete demos require Azure**. Without Azure you can read/edit source,
 
 The runner converts normal Ctrl+C, termination and its 30-minute deadline into a bounded recovery attempt. It allows up to ten additional minutes for owned Azure operations to restore baseline before forcing its child to stop. Heartbeats continue during recovery. A forced kill reports traffic/resource state as **UNKNOWN**; use Azure ML to restore baseline and run `lab-down.sh`. An outer automation must allow this recovery grace instead of killing the process group immediately. No local process exit is treated as proof of Azure recovery.
 
-Only endpoints named `ai300-...` with `course=ai300` and `purpose=disposable-course-lab` tags can receive course mutations or test traffic. The deliberately strict rollback-test threshold cannot be applied to an ordinary configured endpoint.
+Only endpoints named `ai300-...` with `course=ai300` and `purpose=disposable-course-lab` tags can receive course mutations or test traffic. Keep the normal predeclared latency, quality, sample and resource gates; the course does not manufacture a failure with an artificially low threshold. Prepare the scoped alert, inspect the actual canary responses and telemetry, then exercise step 4 rollback whether the candidate passed or failed. Step 4 restores 100 percent baseline traffic and requires its retained response review, successful request outcomes, latency, CPU and memory gates before reporting verified recovery.
 
 ## Final-outline preparation
 

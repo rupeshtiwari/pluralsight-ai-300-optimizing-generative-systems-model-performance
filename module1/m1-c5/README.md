@@ -65,6 +65,14 @@ Open `ai300/demos.py:rag_ab` in VS Code (file and named function). Related sourc
 
 Before the first retrieval, `rag_ab` retains `ab-experiment-contract.json` in the run root. It records `primary_metric`, the fixed session count and stop rule, A/B retrieval settings, generation settings and declaration time. The shipped configuration declares `manual_answer_support` and `fixed_sessions_no_early_efficacy` for 24 synthetic sessions. Open this file before dispatching the experiment. Assignments retain its SHA-256; changing the contract or its settings requires a new run. Preserve the original run and its failed or interrupted observations.
 
+## Jump to a Step
+
+| Step | Action |
+|---|---|
+| [Step 1](#step-1) | Run the Python experiment runner against two configurations of the same Azure AI Search index and the same gpt-5.6-luna deployment in Microsoft Foundry, holding the prompt and generation settings fixed |
+| [Step 2](#step-2) | Compare Recall@k, nDCG@k, manually reviewed answer support, and latency; inspect a response against its source and check for regressions |
+| [Step 3](#step-3) | Assign synthetic sessions consistently to A or B, log exposures and outcomes to Azure ML with MLflow, and check the primary metric, declared before the run, against its stop rule |
+
 ## Numbered Steps
 
 <a id="step-1"></a>

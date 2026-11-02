@@ -73,6 +73,14 @@ Finish the source and prerequisite runs, then initialize from the repository roo
 
 Open `ai300/demos.py:lora_select` in VS Code (file and named function). Related source: `ai300/demos.py`, `ai300/core.py`, `ai300/azure.py`, `configs/m2-demo4.json`, `jobs/train_lora.py`, `ai300/ml.py`.
 
+## Jump to a Step
+
+| Step | Action |
+|---|---|
+| [Step 1](#step-1) | Configure a second CPU command job that changes only the LoRA rank, with the alpha-to-rank ratio, base model, data splits, seed, learning rate, target modules, and training budget held fixed |
+| [Step 2](#step-2) | Compare both completed runs in MLflow using validation loss, elapsed time, and task outputs, and judge whether the higher rank earns its extra CPU cost |
+| [Step 3](#step-3) | Shortlist the best checkpoint from each run by validation loss, then save each adapter with the exact base-model revision, tokenizer, data, and environment versions |
+
 ## Numbered Steps
 
 <a id="step-1"></a>
