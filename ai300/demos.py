@@ -168,17 +168,11 @@ def synthetic_data(run,n):
     return {'data_assets':assets,'version':version,'hashes':run.previous(2)['hashes'],'final_test_separate':True}
 
 def lora_train(run,n):
-    a=Azure(run)
-    if n==1:
-        synthetic=run.dependency('m2-demo2',3); return {'configuration':run.spec,'data_assets':synthetic['data_assets'],'response_only_loss':'Prompt labels are -100; only JSON response and EOS contribute to loss.','source':'jobs/train_lora.py'}
-    if n==2:
-        # Submission is idempotent across attempts: retain job identity before inspection.
-        if 'training_submission' not in run.state:
-            run.state['training_submission']=submit(a,'train_lora',run.spec,data=run.previous(1)['data_assets']['training_bundle']); run.save()
-        return completed(a,run.state['training_submission'])
-    job=run.previous(2); result=job['result']; path=Path(job['output_path']); history=result['history']
-    divergence=len(history)>1 and history[-1]['training_loss']<history[0]['training_loss'] and history[-1]['validation_loss']>history[0]['validation_loss']
-    return {'job_name':job['job_name'],'history':history,'divergence_observed':divergence,'base':read(path/'base-validation.json'),'adapted':read(path/'adapted-validation.json'),'diagnosis':'Training/validation divergence observed; inspect the failure rows.' if divergence else 'No loss divergence in this run; inspect actual task failures before tuning.','selected_epoch':result['selected_epoch'],'output_path':job['output_path'],'output_uri':job['output_uri'],'result':result}
+    """Implement Demo: Train a LoRA adapter in Azure ML using the numbered learner steps."""
+    # Step 1: Configure Qwen3-0.6B supervised training with Transformers and PEFT, choosing LoRA rank, target modules, learning rate, batch size, and response-only loss
+    # Step 2: Submit the CPU command job, then track training and validation loss for the completed run in Azure ML through MLflow
+    # Step 3: Diagnose divergence between training and validation loss, then inspect base and adapted validation responses for memorization and task errors before further tuning
+    raise Hold("STARTER: Implement lora_train; compare origin/m2-demo3-after.")
 
 def lora_select(run,n):
     a=Azure(run); first=run.dependency('m2-demo3',3)
