@@ -3,10 +3,10 @@
   "demo": "m1-demo2",
   "before_branch": "m1-demo2-before",
   "after_branch": "m1-demo2-after",
-  "reference_main": "fd986ca196427b6dca1d072348ba0e81dc6e3a2c",
+  "reference_main": "ec3fd306d02e18a7b9de2c9aaf270fea3fd57aaa",
   "source_file": "ai300/demos.py",
   "omitted_function": "hybrid_search",
-  "completed_function_sha256": "e0e0167fa56cbd8790bf6e4b6703a91166d1eae5c5d11028aa32ec088c04aade",
+  "completed_function_sha256": "81f51c50bdf8d73d31e9c445f9cb6aeaee5662e2bb0505a3b1bbe07a397239ee",
   "prerequisites": [],
   "runtime": "NOT RUN"
 }
