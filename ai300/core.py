@@ -197,6 +197,10 @@ def validate_demo_spec(demo,spec):
         require(spec.get('chunk_sizes')==[64,128,192],'The approved comparison requires chunk_sizes [64,128,192].')
         require(isinstance(spec.get('overlap_tokens'),int) and 0<=spec['overlap_tokens']<64,'Overlap must be an integer from 0 to 63 tokens.')
     if demo=='m1-demo2': require(spec.get('semantic_candidates')==50,'The approved semantic comparison requests 50 vector candidates.')
+    if demo=='m1-demo3':
+        require(type(spec.get('sessions')) is int and spec['sessions']>0,'Declare a positive fixed A/B session count.')
+        require(spec.get('primary_metric')=='manual_answer_support','The primary metric must be manual_answer_support, declared before the experiment.')
+        require(spec.get('stop_rule')=='fixed_sessions_no_early_efficacy','Declare fixed_sessions_no_early_efficacy before the experiment.')
     if demo=='m2-demo2': require(spec.get('manual_review_required') is True,'Manual acceptance of synthetic examples is a required gate.')
     if demo=='m3-demo2': require(type(spec.get('traffic')) is int and spec['traffic']==0,'A newly deployed candidate must receive zero routed traffic.')
     if demo=='m2-demo3': require(spec.get('batch_size')==1,'The bounded CPU loop implements batch_size=1; revise code and its evidence before changing it.')

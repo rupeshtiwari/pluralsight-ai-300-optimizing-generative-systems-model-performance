@@ -40,11 +40,35 @@ def hybrid_search(run,n):
     if n==2:
         return sweep(a,{'hybrid-w1-k10':{'mode':'hybrid','weight':1.,'depth':10},'hybrid-w2-k10':{'mode':'hybrid','weight':2.,'depth':10},'hybrid-w2-k50':{'mode':'hybrid','weight':2.,'depth':run.spec['semantic_candidates']},'semantic-w2-k50':{'mode':'semantic','weight':2.,'depth':run.spec['semantic_candidates']}})
     baseline=run.previous(1)['variants']['hybrid']; variants=run.previous(2)['variants']; rows=run.previous(2)['rows']
-    regressions=[{'variant':name,'query_type':t,'recall_delta':v['by_query_type'][t]['recall_at_k']-baseline['by_query_type'][t]['recall_at_k']} for name,v in variants.items() for t in baseline['by_query_type'] if v['by_query_type'][t]['recall_at_k']<baseline['by_query_type'][t]['recall_at_k']]
+    regressions=[]
+    for name,metrics in variants.items():
+        for kind,reference in baseline['by_query_type'].items():
+            observed=metrics['by_query_type'].get(kind)
+            require(observed is not None,f'Missing query-type evidence: {name}/{kind}.')
+            deltas={metric:observed[metric]-reference[metric] for metric in ('recall_at_k','ndcg_at_k')}
+            if any(delta<0 for delta in deltas.values()):
+                regressions.append({'variant':name,'query_type':kind,'recall_delta':deltas['recall_at_k'],'ndcg_delta':deltas['ndcg_at_k'],'regressed_metrics':[metric for metric,delta in deltas.items() if delta<0]})
     eligible=[name for name,metrics in variants.items() if metrics['p95_latency_ms']<=run.spec['latency_budget_ms'] and not any(r['variant']==name for r in regressions) and metrics['ndcg_at_k']>baseline['ndcg_at_k']]
     winner=max(eligible,key=lambda name:variants[name]['ndcg_at_k']) if eligible else None
     settings={r['variant']:r['settings'] for r in rows}
     return {'baseline':baseline,'variants':variants,'query_type_regressions':regressions,'score_types':{'keyword':'BM25','vector':'transformed cosine','hybrid':'RRF','semantic':'RRF plus separate @search.rerankerScore'},'decision':'ADOPT' if winner else 'RETAIN_BASELINE','selected_variant':winner,'selected_settings':settings[winner] if winner else {'mode':'hybrid','depth':10},'latency_budget_ms':run.spec['latency_budget_ms'],'example_rows':rows[:2]}
+
+def ab_experiment_contract(run):
+    """Persist the predeclared experiment before the first retrieval or assignment."""
+    require(run.spec.get('primary_metric')=='manual_answer_support','Declare manual_answer_support as the primary metric before starting this experiment.')
+    require(run.spec.get('stop_rule')=='fixed_sessions_no_early_efficacy','Declare the fixed-session stop rule before starting this experiment.')
+    require(type(run.spec.get('sessions')) is int and run.spec['sessions']>0,'Declare a positive fixed session count.')
+    contract={'run_id':run.state['run_id'],'primary_metric':run.spec['primary_metric'],'stop_rule':f"fixed {run.spec['sessions']} sessions; no early efficacy stopping",'session_count':run.spec['sessions'],'variants':{'A':{'mode':'vector','size':64,'depth':10},'B':{'mode':'semantic','size':128,'depth':50}},'fixed_generation':{'deployment':run.config.get('foundry_deployment'),'model_version':run.config.get('foundry_version'),'max_completion_tokens':512,'reasoning_effort':'none','prompt_version':'rag-json-v1'}}
+    path=run.path/'ab-experiment-contract.json'; record=run.state.get('ab_experiment_contract')
+    if path.exists():
+        require(record is not None and record.get('path')==str(path) and digest(path)==record.get('sha256'),'Predeclared A/B contract changed or its run identity is missing.')
+        saved=read(path)
+        require({k:saved.get(k) for k in contract}==contract,'A/B metric, stop rule, assignment count or response settings changed after predeclaration. Start a new run.')
+    else:
+        require(record is None and not (run.path/'ab-observations.json').exists(),'A/B assignments exist without their predeclared contract; retain this run and start a new experiment.')
+        write(path,{**contract,'declared_at':now()})
+        run.state['ab_experiment_contract']={'path':str(path),'sha256':digest(path)}; run.save()
+    return {**read(path),'path':str(path),'sha256':digest(path)}
 
 def rag_ab(run,n):
     """Implement Demo: Evaluate RAG variants with Azure services using the numbered learner steps."""
