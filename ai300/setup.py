@@ -33,7 +33,7 @@ def main():
     client=MLClient(DefaultAzureCredential(exclude_interactive_browser_credential=True),c['subscription_id'],c['resource_group'],c['workspace'],connection_timeout=15,read_timeout=90,retry_total=2)
     if args.action=='create-baseline':
         create_baseline(client,c); return
-    require(args.image and '@sha256:' in args.image,'Pass the current approved CPU base image by immutable sha256 digest; no rolling tag.')
+    require(args.image and re.fullmatch(r'mcr\.microsoft\.com/azureml/openmpi5\.0-ubuntu24\.04@sha256:[0-9a-f]{64}',args.image),'Pass the Ubuntu24.04 CPU image by immutable sha256 digest; use scripts/resolve_cpu_image.py.')
     for kind,field in [('train','training_environment'),('serve','serving_environment')]:
         definition=ROOT/'environments'/f'{kind}-conda.yml'; version=object_hash({'image':args.image,'conda':definition.read_text()})[:16]
         env=client.environments.create_or_update(Environment(name='ai300-cpu-'+kind,version=version,image=args.image,conda_file=str(definition),description='Pinned CPU environment; build/run still require verification'))

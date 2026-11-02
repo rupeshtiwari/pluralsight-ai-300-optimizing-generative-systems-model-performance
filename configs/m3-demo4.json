@@ -1,14 +1,21 @@
 {
-  "requests": 30,
+  "requests": 60,
   "latency_budget_ms": 30000,
   "quality_gates": {
     "manual_correctness": 0.75,
     "manual_answer_support": 0.75,
     "schema_validity": 1.0
   },
-  "rollback_test": {
-    "enabled": true,
-    "candidate_p95_threshold_ms": 1,
-    "label": "ISOLATED_COURSE_ROLLBACK_TEST_NOT_PRODUCTION_SLO"
-  }
+  "minimum_by_query_type": {
+    "exact_identifier": 2,
+    "paraphrase": 2,
+    "general": 2
+  },
+  "resource_gates": {
+    "CpuUtilizationPercentage": 90,
+    "CpuMemoryUtilizationPercentage": 90
+  },
+  "max_requests": 300,
+  "minimum_observation_seconds": 120,
+  "max_observation_requests": 120
 }

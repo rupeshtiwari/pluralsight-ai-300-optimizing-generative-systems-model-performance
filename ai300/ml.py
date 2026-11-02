@@ -3,7 +3,7 @@ import json, os, re, shutil, tempfile, time
 from pathlib import Path
 from .core import ROOT, Hold, require, read, write, digest, object_hash, uid
 
-def submit(a,kind,config,data=None,adapter=None):
+def submit(a,kind,config,data=None,adapter=None,adapter2=None):
     from azure.ai.ml import command, Input, Output
     from azure.ai.ml.entities import JobResourceConfiguration, CommandJobLimits, AmlCompute
     compute=a.ml.compute.get(a.c['cpu_compute']); require(isinstance(compute,AmlCompute),'Use an AmlCompute CPU cluster, not an unknown compute type.'); size=compute.size.upper()
@@ -19,6 +19,8 @@ def submit(a,kind,config,data=None,adapter=None):
         inputs['data']=Input(type='uri_folder',path=data,mode='ro_mount'); arguments+=' --data ${{inputs.data}}'
     if adapter:
         inputs['adapter']=Input(type='uri_folder',path=adapter,mode='ro_mount'); arguments+=' --adapter ${{inputs.adapter}}'
+    if adapter2:
+        inputs['adapter2']=Input(type='uri_folder',path=adapter2,mode='ro_mount'); arguments+=' --adapter2 ${{inputs.adapter2}}'
     name='ai300-'+kind+'-'+uid().lower()
     cmd=command(name=name,display_name=name,experiment_name='ai300-'+kind,code=str(bundle),command=f'python -m jobs.{kind} --config job-config.json --output ${{{{outputs.result}}}}'+arguments,inputs=inputs,outputs={'result':Output(type='uri_folder',mode='rw_mount')},environment=environment.id,compute=a.c['cpu_compute'],resources=JobResourceConfiguration(instance_count=1),environment_variables={'OMP_NUM_THREADS':'4','MKL_NUM_THREADS':'4','HF_HUB_DOWNLOAD_TIMEOUT':'90'},limits=CommandJobLimits(timeout=7200),tags={'course':'ai300','config_hash':object_hash(config),'source_hash':object_hash(read(a.run.path/'manifest.json')['source_hashes'])})
     job=a.ml.jobs.create_or_update(cmd)

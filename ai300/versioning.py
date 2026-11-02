@@ -3,7 +3,7 @@ import sys
 from importlib.metadata import version, PackageNotFoundError
 from .core import ROOT, require
 PYTHON_VERSION='3.12.16'
-TRAIN={'torch':'2.14.1+cpu','transformers':'5.20.2','peft':'0.21.2','accelerate':'1.15.0','sentence-transformers':'6.2.0','mlflow-skinny':'3.15.0','azureml-mlflow':'1.62.0.post6','azure-identity':'1.26.0'}
+TRAIN={'torch':'2.14.1+cpu','transformers':'5.20.2','peft':'0.21.2','accelerate':'1.15.0','sentence-transformers':'6.2.0','datasets':'5.1.0','mlflow-skinny':'3.15.0','azureml-mlflow':'1.62.0.post6','azure-identity':'1.26.0'}
 SERVE={'torch':'2.14.1+cpu','transformers':'5.20.2','peft':'0.21.2','accelerate':'1.15.0','azureml-inference-server-http':'1.5.1'}
 def require_versions(expected,allow_client_cpu_suffix=False):
     observed_python='.'.join(map(str,sys.version_info[:3])); require(observed_python==PYTHON_VERSION,f'Expected Python {PYTHON_VERSION}, observed {observed_python}. Install the approved patch version; offline checks remain available.')

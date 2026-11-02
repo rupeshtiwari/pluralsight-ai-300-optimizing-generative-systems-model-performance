@@ -49,7 +49,7 @@ python -m ai300.setup freeze-models
 python -m ai300.setup register-environments --image "YOUR_APPROVED_CPU_IMAGE@sha256:YOUR_DIGEST"
 ```
 
-For `--image`, use Microsoft's CPU `azureml/openmpi4.1.0-ubuntu22.04` base image, listed in [AzureML-Containers](https://github.com/Azure/AzureML-Containers) and used for CPU managed deployments in [Microsoft's deployment guide](https://learn.microsoft.com/azure/machine-learning/how-to-deploy-managed-online-endpoints?view=azureml-api-2). Training and serving use separate conda environments on this CPU base; serving adds the pinned inference server. Availability is not proof that these two environments build successfully.
+For `--image`, use Microsoft's CPU `azureml/openmpi5.0-ubuntu24.04` base image, listed in [AzureML-Containers](https://github.com/Azure/AzureML-Containers) and used for CPU managed deployments in [Microsoft's deployment guide](https://learn.microsoft.com/azure/machine-learning/how-to-deploy-managed-online-endpoints?view=azureml-api-2). Training and serving use separate conda environments on this CPU base; serving adds the pinned inference server. Availability is not proof that these two environments build successfully.
 
 Resolve its current tag to an immutable registry digest without Docker:
 
@@ -146,3 +146,7 @@ All **11 complete demos require Azure**. Without Azure you can read/edit source,
 The runner converts normal Ctrl+C, termination and its 30-minute deadline into a bounded recovery attempt. It allows up to ten additional minutes for owned Azure operations to restore baseline before forcing its child to stop. Heartbeats continue during recovery. A forced kill reports traffic/resource state as **UNKNOWN**; use Azure ML to restore baseline and run `lab-down.sh`. An outer automation must allow this recovery grace instead of killing the process group immediately. No local process exit is treated as proof of Azure recovery.
 
 Only endpoints named `ai300-...` with `course=ai300` and `purpose=disposable-course-lab` tags can receive course mutations or test traffic. The deliberately strict rollback-test threshold cannot be applied to an ordinary configured endpoint.
+
+## Final-outline preparation
+
+Record the measured adopted retrieval settings in `adopted_retrieval`; the example values are placeholders for a reviewed selection, not evidence of adoption. For M3 C5 initialize the run then execute `python -m ai300.cli --demo m3-demo4 prepare-alert` before filming. All Azure permissions, model access, endpoint quota (at least 16 vCPUs per outline), real CPU timings and populated telemetry remain live prerequisites.

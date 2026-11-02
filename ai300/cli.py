@@ -1,14 +1,14 @@
 """Public lab CLI. Missing Azure proof produces HOLD and a nonzero exit."""
 import argparse, importlib.util, json, os, re, signal, sys, traceback
 from pathlib import Path
-from .core import ROOT, Hold, Run, require, read, write, digest, source_hashes, validate_splits, now, consumed_config
+from .core import ROOT, Hold, Run, require, read, write, digest, source_hashes, validate_splits, validate_demo_spec, now, consumed_config
 from .demos import HANDLERS
 
 def check_config(demo):
     path=ROOT/'config.local.json'; require(path.exists(),'Copy config.example.json to config.local.json, configure existing Azure resources and pin model commits; see setup/README.md.')
     c=read(path)
     fields=consumed_config(c,demo)
-    missing=[key for key,value in fields.items() if key!='model_revisions' and (not isinstance(value,str) or not value or 'REPLACE' in value)]
+    missing=[key for key,value in fields.items() if key not in ('model_revisions','adopted_retrieval') and (not isinstance(value,str) or not value or 'REPLACE' in value)]
     require(not missing,'Configure: '+', '.join(missing))
     for model,revision in fields.get('model_revisions',{}).items(): require(isinstance(revision,str) and re.fullmatch('[0-9a-f]{40}',revision),f'Immutable model commit missing: {model}. Run python -m ai300.setup freeze-models.')
     for name in ('azure.ai.ml','azure.identity','sentence_transformers','openai','mlflow'):
@@ -43,7 +43,9 @@ def cleanup(run):
     if config.get('delete_candidate') and endpoint_applicable and endpoint is not None:
         name=run.config['candidate_deployment']; endpoint=run.config['endpoint']
         deployments={d.name:d for d in a.ml.online_deployments.list(endpoint)}
-        if name in deployments:
+        if name in deployments and (resources.get('candidate_deployment')!=name or (deployments[name].tags or {}).get('run_id')!=run.state['run_id']):
+            actions.append({'retained_unowned_candidate':name,'reason':'This run did not create the deployment; no deletion authorized by its evidence.'})
+        elif name in deployments:
             require(name!=run.config['baseline_deployment'] and deployments[name].tags.get('course')=='ai300','Refusing to delete an unrelated deployment.')
             state=a.ml.online_endpoints.get(endpoint)
             if state.traffic.get(name,0):
@@ -52,6 +54,8 @@ def cleanup(run):
             a.ml.online_deployments.begin_delete(name,endpoint).result(timeout=300); actions.append({'deleted_candidate':name})
     if config.get('delete_alert') and resources.get('alert_id'):
         try:
+            alert=a.arm('GET',resources['alert_id'],version='2018-03-01')
+            require(alert.get('tags',{}).get('course')=='ai300' and alert.get('tags',{}).get('run_id')==run.state['run_id'],'Refusing to delete an alert owned by another run.')
             a.arm('DELETE',resources['alert_id'],version='2018-03-01'); actions.append({'deleted_alert':resources['alert_id']})
         except Hold as exc:
             from urllib.error import HTTPError
@@ -78,7 +82,7 @@ def cleanup(run):
 
 
 def main():
-    p=argparse.ArgumentParser(); p.add_argument('--demo',choices=HANDLERS,required=True); p.add_argument('action',choices=['up','step','check','down']); p.add_argument('number',type=int,nargs='?'); p.add_argument('--offline',action='store_true'); p.add_argument('--live',action='store_true'); args=p.parse_args(); require(not(args.offline and args.live),'Choose either --offline or --live.')
+    p=argparse.ArgumentParser(); p.add_argument('--demo',choices=HANDLERS,required=True); p.add_argument('action',choices=['up','step','check','down','prepare-alert']); p.add_argument('number',type=int,nargs='?'); p.add_argument('--offline',action='store_true'); p.add_argument('--live',action='store_true'); args=p.parse_args(); require(not(args.offline and args.live),'Choose either --offline or --live.')
     run=None
     try:
         def request_recovery(signum,frame):
@@ -90,6 +94,7 @@ def main():
         if hasattr(signal,'SIGALRM'):
             signal.signal(signal.SIGALRM,request_recovery); signal.alarm(1800)
         if args.action=='check':
+            validate_demo_spec(args.demo,read(ROOT/'configs'/f'{args.demo}.json'))
             result={'mode':'OFFLINE_LOGIC_CHECKS_NOT_AZURE_PROOF','data':validate_splits(),'source_files':len(source_hashes()),'runtime':'NOT RUN'}
             if not args.offline:
                 check_config(args.demo)
@@ -104,12 +109,18 @@ def main():
         if args.action=='up':
             run=Run(args.demo,create=True); print('Initialized:',run.path); print('Azure runtime: NOT RUN. Execute the numbered steps; inspect real responses.'); return 0
         run=Run(args.demo,cleanup_only=args.action=='down'); count=len(next(x for x in read(ROOT/'course-contract.json')['demos'] if x['stem']==args.demo)['steps'])
+        if args.action=='prepare-alert':
+            require(args.demo=='m3-demo4','Alert preparation belongs to m3-demo4.')
+            from .demos import prepare_canary_alert
+            from .azure import Azure
+            run.attempt=run.path/('alert-setup-'+__import__('uuid').uuid4().hex[:8]); run.attempt.mkdir()
+            print(json.dumps(prepare_canary_alert(Azure(run)),indent=2)); return 0
         if args.action=='down':
             run.attempt=run.path/('cleanup-'+__import__('uuid').uuid4().hex[:8]); run.attempt.mkdir(); report=cleanup(run); write(run.attempt/'report.json',report); print(json.dumps(report,indent=2)); return 0
         require(args.number is not None and 1<=args.number<=count,f'Choose a step from 1 to {count}.')
         run.begin(args.number); print(f'START {args.demo} step {args.number}; evidence: {run.attempt}',flush=True)
         report=HANDLERS[args.demo](run,args.number); run.complete(args.number,report)
-        if report.get('decision')=='REJECT' or report.get('release_decision')=='REJECT':
+        if report.get('decision') in ('REJECT','STOP_PROMOTION') or report.get('release_decision')=='REJECT':
             print('HOLD: quality gate rejected the candidate; report retained. Keep the baseline.',file=sys.stderr); return 2
         return 0
     except Exception as exc:

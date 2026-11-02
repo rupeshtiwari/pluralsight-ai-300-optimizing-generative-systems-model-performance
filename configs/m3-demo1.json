@@ -6,5 +6,10 @@
     "max_regression": 0.0,
     "manual_correctness": 0.75,
     "manual_answer_support": 0.75
+  },
+  "minimum_by_query_type": {
+    "exact_identifier": 2,
+    "paraphrase": 2,
+    "general": 2
   }
 }

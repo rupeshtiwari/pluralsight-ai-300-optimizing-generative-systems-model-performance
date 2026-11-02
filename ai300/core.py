@@ -182,10 +182,12 @@ def consumed_config(config,demo):
     foundry=['foundry_endpoint','foundry_resource_id','foundry_deployment','foundry_model','foundry_version']
     training=['cpu_compute','training_environment']
     endpoint=['endpoint','baseline_deployment','candidate_deployment','serving_environment','endpoint_instance_type']
-    names={'m1-demo1':workspace+search,'m1-demo2':workspace+search,'m1-demo3':workspace+search+foundry,'m2-demo1':workspace+training+search,'m2-demo2':workspace+foundry,'m2-demo3':workspace+training,'m2-demo4':workspace+training,'m3-demo1':workspace+training,'m3-demo2':workspace+endpoint,'m3-demo3':workspace+endpoint,'m3-demo4':workspace+endpoint+['monitor_action_group_id']}[demo]
+    names={'m1-demo1':workspace+search,'m1-demo2':workspace+search,'m1-demo3':workspace+search+foundry,'m2-demo1':workspace+training+search+['adopted_retrieval'],'m2-demo2':workspace+foundry,'m2-demo3':workspace+training,'m2-demo4':workspace+training,'m3-demo1':workspace+training+search+['adopted_retrieval'],'m3-demo2':workspace+endpoint,'m3-demo3':workspace+endpoint+search+['adopted_retrieval'],'m3-demo4':workspace+endpoint+search+['adopted_retrieval','monitor_action_group_id']}[demo]
     result={key:config.get(key) for key in names}
+    if demo=='m2-demo1': result['adopted_retrieval']={'size':config.get('adopted_retrieval',{}).get('size',128)}
     if demo!='m2-demo2':
-        models=['sentence-transformers/all-MiniLM-L6-v2','BAAI/bge-small-en-v1.5'] if demo.startswith('m1') or demo=='m2-demo1' else ['Qwen/Qwen3-0.6B']
+        models=['sentence-transformers/all-MiniLM-L6-v2','BAAI/bge-small-en-v1.5'] if demo.startswith('m1') or demo in ('m2-demo1','m3-demo1','m3-demo3','m3-demo4') else ['Qwen/Qwen3-0.6B']
+        if demo in ('m3-demo1','m3-demo3','m3-demo4'): models=models+['Qwen/Qwen3-0.6B']
         result['model_revisions']={model:config.get('model_revisions',{}).get(model) for model in models}
     return result
 
@@ -199,12 +201,18 @@ def validate_demo_spec(demo,spec):
     if demo=='m3-demo2': require(type(spec.get('traffic')) is int and spec['traffic']==0,'A newly deployed candidate must receive zero routed traffic.')
     if demo=='m2-demo3': require(spec.get('batch_size')==1,'The bounded CPU loop implements batch_size=1; revise code and its evidence before changing it.')
 
-    if demo=='m3-demo4':
-        test=spec.get('rollback_test',{})
-        require(isinstance(test.get('enabled'),bool),'Declare whether the isolated rollback test is enabled before traffic.')
-        if test['enabled']:
-            require(test.get('label')=='ISOLATED_COURSE_ROLLBACK_TEST_NOT_PRODUCTION_SLO','An isolated rollback-test trigger must be explicitly labeled test-only.')
-            require(isinstance(test.get('candidate_p95_threshold_ms'),(int,float)) and 0<test['candidate_p95_threshold_ms']<spec['latency_budget_ms'],'Test candidate threshold must be positive and stricter than normal baseline recovery budget.')
+    if demo in ('m1-demo1','m1-demo2'):
+        require(isinstance(spec.get('latency_budget_ms'),(int,float)) and spec['latency_budget_ms']>0,'Declare a positive latency budget before comparison.')
+    if demo in ('m3-demo1','m3-demo3','m3-demo4'):
+        minimums=spec.get('minimum_by_query_type',{})
+        require(set(minimums)=={'general','exact_identifier','paraphrase'} and all(type(n) is int and n>0 for n in minimums.values()),'Declare positive minimum samples for every query type.')
+    if demo in ('m3-demo3','m3-demo4'):
+        resources=spec.get('resource_gates',{})
+        require(set(resources)=={'CpuUtilizationPercentage','CpuMemoryUtilizationPercentage'} and all(isinstance(n,(int,float)) and 0<n<=100 for n in resources.values()),'Declare CPU and memory percentage ceilings.')
+    if demo in ('m3-demo3','m3-demo4'):
+        require(type(spec.get('minimum_observation_seconds')) is int and spec['minimum_observation_seconds']>=120 and type(spec.get('max_observation_requests')) is int and spec['max_observation_requests']>0,'Declare at least120seconds and a bounded request budget for attributable metric windows.')
+    if demo=='m3-demo3': require(type(spec.get('request_timeout_ms')) is int and 0<spec['request_timeout_ms']<=180000,'Declare the frozen endpoint timeout in milliseconds.')
+    if demo=='m3-demo4': require(type(spec.get('max_requests')) is int and spec['max_requests']>=spec['requests']>0,'Declare a bounded canary request budget.')
 
 
 def index_layout_version(config,spec):

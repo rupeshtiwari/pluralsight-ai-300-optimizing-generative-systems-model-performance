@@ -65,11 +65,13 @@ class Azure:
         tokenizer=self.model('sentence-transformers/all-MiniLM-L6-v2').tokenizer
         chunks=[]
         for d in jsonl(ROOT/'data/corpus.jsonl'):
-            tokens=tokenizer.encode(d['text'],add_special_tokens=False)
+            encoded=tokenizer(d['text'],add_special_tokens=False,return_offsets_mapping=True)
+            tokens=encoded['input_ids']; offsets=encoded['offset_mapping']
+            require(len(tokens)==len(offsets),'Tokenizer must supply exact original-text offsets.')
             for size in self.run.spec.get('chunk_sizes',[64,128,192]):
                 for start in range(0,len(tokens),size-self.run.spec.get('overlap_tokens',16)):
                     part=tokens[start:start+size]
-                    chunks.append({'@search.action':'mergeOrUpload','id':f"{layout[:12]}-{d['source_id']}-{size}-{start}",'layout_version':layout,'source_id':d['source_id'],'source_group':d['source_group'],'split':d['split'],'title':d['title'],'content':tokenizer.decode(part),'chunk_size':size,'token_start':start,'token_end':start+len(part)})
+                    chunks.append({'@search.action':'mergeOrUpload','id':f"{layout[:12]}-{d['source_id']}-{size}-{start}",'layout_version':layout,'source_id':d['source_id'],'source_group':d['source_group'],'split':d['split'],'title':d['title'],'content':d['text'][offsets[start][0]:offsets[start+len(part)-1][1]],'chunk_size':size,'token_start':start,'token_end':start+len(part)})
         for field,name in [('mini_vector','sentence-transformers/all-MiniLM-L6-v2'),('bge_vector','BAAI/bge-small-en-v1.5')]:
             vectors=self.encode([x['content'] for x in chunks],name)
             for chunk,vector in zip(chunks,vectors): chunk[field]=vector
@@ -88,7 +90,7 @@ class Azure:
             checkpoint=self.run.state.get('tuned_checkpoint_job'); require(checkpoint,'Selected embedding checkpoint identity is missing.'); body['filter']+=f" and tuned_checkpoint_job eq '{checkpoint}'"
         if mode in ('keyword','hybrid','semantic'): body['search']=q['question']
         if mode!='keyword':
-            vector=encoder.encode([q['question']],normalize_embeddings=True).tolist()[0] if encoder else self.encode([q['question']],name='BAAI/bge-small-en-v1.5' if field=='bge_vector' else 'sentence-transformers/all-MiniLM-L6-v2',query=True)[0]
+            vector=encoder.encode(['Represent this sentence for searching relevant passages: '+q['question']],normalize_embeddings=True).tolist()[0] if encoder else self.encode([q['question']],name='BAAI/bge-small-en-v1.5' if field=='bge_vector' else 'sentence-transformers/all-MiniLM-L6-v2',query=True)[0]
             body['vectorQueries']=[{'kind':'vector','vector':vector,'fields':field,'k':depth,'weight':weight}]; body['vectorFilterMode']='preFilter'
         if mode=='semantic':
             require(depth>=50,'Semantic ranking needs the approved 50 vector candidates.'); body.update(queryType='semantic',semanticConfiguration='support-semantic')
@@ -138,7 +140,7 @@ class Azure:
         auth=token.primary_key if endpoint.auth_mode=='key' else token.access_token
         request=urllib.request.Request(endpoint.scoring_uri,data=json.dumps(payload).encode(),headers={'Authorization':'Bearer '+auth,'Content-Type':'application/json',**headers},method='POST')
         started=time.perf_counter()
-        with urllib.request.urlopen(request,timeout=120) as response: result=json.loads(response.read())
+        with urllib.request.urlopen(request,timeout=210) as response: result=json.loads(response.read())
         require(isinstance(result,dict) and 'model_identity' in result,'Scoring response lacks model identity.')
         elapsed=(time.perf_counter()-started)*1000; self.run.raw('endpoint',{'deployment_override':deployment,'request':payload,'response':result,'latency_ms':elapsed,'at':now()})
         return result,elapsed
@@ -151,7 +153,7 @@ def resolve_environment(client,reference,definition):
     else:
         match=re.search(r'/environments/([^/]+)/versions/([^/]+)$',reference); require(match is not None,'Environment reference must be an exact registered version.'); name,version=match.groups()
     environment=client.environments.get(name=name,version=version)
-    require('@sha256:' in (environment.image or ''),'Environment image must be pinned by digest.')
+    require(re.fullmatch(r'mcr\.microsoft\.com/azureml/openmpi5\.0-ubuntu24\.04@sha256:[0-9a-f]{64}',environment.image or ''),'Environment must use the exact Ubuntu24.04 CPU image digest.')
     actual=environment.conda_file
     if isinstance(actual,str):
         # SDK readback can return serialized YAML. Never treat Azure strings as arbitrary local filenames.

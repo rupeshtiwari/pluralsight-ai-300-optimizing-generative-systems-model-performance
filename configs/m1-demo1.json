@@ -4,5 +4,6 @@
     128,
     192
   ],
-  "overlap_tokens": 16
+  "overlap_tokens": 16,
+  "latency_budget_ms": 30000
 }
