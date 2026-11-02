@@ -1,3 +1,5 @@
 {
-  "sessions": 24
+  "sessions": 24,
+  "primary_metric": "manual_answer_support",
+  "stop_rule": "fixed_sessions_no_early_efficacy"
 }

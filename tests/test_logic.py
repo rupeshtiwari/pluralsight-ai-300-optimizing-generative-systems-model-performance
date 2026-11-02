@@ -138,7 +138,7 @@ class ReviewRegressionTests(unittest.TestCase):
         from ai300 import demos
         with tempfile.TemporaryDirectory() as temp:
             class RunDouble:
-                path=Path(temp); attempt=Path(temp)/'attempt'; state={'run_id':'OFFLINE-DOUBLE'}; spec={'sessions':2}; config={}
+                path=Path(temp); attempt=Path(temp)/'attempt'; state={'run_id':'OFFLINE-DOUBLE'}; spec={'sessions':2,'primary_metric':'manual_answer_support','stop_rule':'fixed_sessions_no_early_efficacy'}; config={}
                 def save(self): pass
                 def previous(self,n): return {'settings':{'A':{},'B':{}}}
             run=RunDouble(); run.attempt.mkdir()
