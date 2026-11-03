@@ -12,7 +12,7 @@ class RetrievalDecisionContractTests(unittest.TestCase):
     def test_aggregate_gain_cannot_hide_ndcg_slice_regression(self):
         baseline={'ndcg_at_k':.6,'p95_latency_ms':100,'by_query_type':{'exact_identifier':{'recall_at_k':1.,'ndcg_at_k':.8},'paraphrase':{'recall_at_k':1.,'ndcg_at_k':.4}}}
         candidate={'ndcg_at_k':.7,'p95_latency_ms':100,'by_query_type':{'exact_identifier':{'recall_at_k':1.,'ndcg_at_k':.6},'paraphrase':{'recall_at_k':1.,'ndcg_at_k':.8}}}
-        reports={1:{'variants':{'hybrid':baseline}},2:{'variants':{'candidate':candidate},'rows':[{'variant':'candidate','settings':{'mode':'semantic'}}]}}
+        reports={1:{'variants':{'hybrid':baseline},'rows':[{'variant':'hybrid','settings':{'mode':'hybrid','depth':10,'policy_filter':'all'}}]},2:{'variants':{'candidate':candidate},'rows':[{'variant':'candidate','settings':{'mode':'semantic'}}]}}
         run=SimpleNamespace(spec={'latency_budget_ms':1000},previous=reports.__getitem__)
         with patch.object(demos,'Azure'):
             report=demos.hybrid_search(run,3)
