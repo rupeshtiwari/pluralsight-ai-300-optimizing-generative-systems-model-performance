@@ -1,4 +1,5 @@
 {
   "semantic_candidates": 50,
-  "latency_budget_ms": 30000
+  "latency_budget_ms": 30000,
+  "policy_filter": "all"
 }
