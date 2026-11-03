@@ -1,5 +1,6 @@
 {
   "sessions": 24,
   "primary_metric": "manual_answer_support",
-  "stop_rule": "fixed_sessions_no_early_efficacy"
+  "stop_rule": "fixed_sessions_no_early_efficacy",
+  "policy_filter": "all"
 }
