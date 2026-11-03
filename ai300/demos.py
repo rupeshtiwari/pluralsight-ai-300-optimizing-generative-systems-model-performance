@@ -12,10 +12,12 @@ def validation(domain=True): return [q for q in jsonl(ROOT/'data/queries.jsonl')
 def sweep(a,variants,questions=None,encoder=None):
     rows=[]
     for label,settings in variants.items():
+        settings={'policy_filter':getattr(getattr(a,'run',None),'spec',{}).get('policy_filter','all'),**settings}
         for q in questions or validation():
             kept,rejected,elapsed=a.query(q,encoder=encoder,**settings)
             rows.append({'variant':label,'query_id':q['query_id'],'query_type':q['query_type'],'settings':settings,'latency_ms':elapsed,'retained':kept,'rejected':rejected,**retrieval_metrics(kept,q)})
-    return {'rows':rows,'variants':{v:summarize([x for x in rows if x['variant']==v]) for v in variants},'split':'validation','measurement':'live Azure Search responses'}
+    return {'rows':rows,'variants':{v:summarize([x for x in rows if x['variant']==v]) for v in variants},'split':'validation','policy_filter':getattr(getattr(a,'run',None),'spec',{}).get('policy_filter','all'),'measurement':'live Azure Search responses'}
+
 
 def retrieval_chunks(run,n):
     """Implement Demo: Tune chunk sizes and similarity cutoffs on Azure AI Search results using the numbered learner steps."""
@@ -42,7 +44,12 @@ def hybrid_search(run,n):
     eligible=[name for name,metrics in variants.items() if metrics['p95_latency_ms']<=run.spec['latency_budget_ms'] and not any(r['variant']==name for r in regressions) and metrics['ndcg_at_k']>baseline['ndcg_at_k']]
     winner=max(eligible,key=lambda name:variants[name]['ndcg_at_k']) if eligible else None
     settings={r['variant']:r['settings'] for r in rows}
-    return {'baseline':baseline,'variants':variants,'query_type_regressions':regressions,'score_types':{'keyword':'BM25','vector':'transformed cosine','hybrid':'RRF','semantic':'RRF plus separate @search.rerankerScore'},'decision':'ADOPT' if winner else 'RETAIN_BASELINE','selected_variant':winner,'selected_settings':settings[winner] if winner else {'mode':'hybrid','depth':10},'latency_budget_ms':run.spec['latency_budget_ms'],'example_rows':rows[:2]}
+    baseline_rows=[r for r in run.previous(1).get('rows',[]) if r['variant']=='hybrid']
+    if not winner:
+        require(bool(baseline_rows),'Retained baseline settings are missing from step 1 evidence.')
+        require(all(r['settings']==baseline_rows[0]['settings'] for r in baseline_rows),'Baseline query settings differ; cannot adopt one configuration.')
+    return {'baseline':baseline,'variants':variants,'query_type_regressions':regressions,'score_types':{'keyword':'BM25','vector':'transformed cosine','hybrid':'RRF','semantic':'RRF plus separate @search.rerankerScore'},'decision':'ADOPT' if winner else 'RETAIN_BASELINE','selected_variant':winner,'selected_settings':settings[winner] if winner else baseline_rows[0]['settings'],'latency_budget_ms':run.spec['latency_budget_ms'],'example_rows':rows[:2]}
+
 
 def ab_experiment_contract(run):
     """Persist the predeclared experiment before the first retrieval or assignment."""
