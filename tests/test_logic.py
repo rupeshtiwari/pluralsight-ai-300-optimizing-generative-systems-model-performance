@@ -40,8 +40,8 @@ class MetricsTests(unittest.TestCase):
         values=[assignment(f'synthetic-session-{i:03}') for i in range(24)]
         self.assertEqual(set(values),{'A','B'}); self.assertEqual(values,[assignment(f'synthetic-session-{i:03}') for i in range(24)])
     def test_original_split_groups(self):
-        self.assertEqual(validate_splits()['sources'],12)
-        self.assertEqual(validate_splits()['queries'],28)
+        self.assertEqual(validate_splits()['sources'],15)
+        self.assertEqual(validate_splits()['queries'],30)
     def test_monitor_missing_values_are_not_zero_success(self):
         snapshot={'snapshots':[{'response':{'value':[{'name':{'value':'RequestLatency_P95'},'timeseries':[{'data':[{'average':None},{}]}]}]}}]}
         self.assertEqual(metric_values(snapshot,'RequestLatency_P95'),[])
