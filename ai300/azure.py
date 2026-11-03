@@ -52,8 +52,9 @@ class Azure:
         service=self.arm('GET',self.c['search_resource_id'],version='2025-05-01')
         require(service['sku']['name'].lower()=='free','Use the approved Search Free tier.')
         fields=[{'name':'id','type':'Edm.String','key':True,'filterable':True}]
-        for n in ('source_id','source_group','split','layout_version','tuned_checkpoint_job','title','content'):
+        for n in ('source_id','source_group','split','layout_version','tuned_checkpoint_job','error_code','policy_version','title','content'):
             fields.append({'name':n,'type':'Edm.String','searchable':n in ('title','content'),'filterable':n not in ('title','content'),'retrievable':True})
+        fields.append({'name':'is_current','type':'Edm.Boolean','filterable':True,'retrievable':True})
         fields += [{'name':'chunk_size','type':'Edm.Int32','filterable':True},{'name':'token_start','type':'Edm.Int32','retrievable':True},{'name':'token_end','type':'Edm.Int32','retrievable':True}]
         for n in ('mini_vector','bge_vector','tuned_vector'):
             fields.append({'name':n,'type':'Collection(Edm.Single)','searchable':True,'dimensions':384,'vectorSearchProfile':'cpu-cosine'})
@@ -71,7 +72,7 @@ class Azure:
             for size in self.run.spec.get('chunk_sizes',[64,128,192]):
                 for start in range(0,len(tokens),size-self.run.spec.get('overlap_tokens',16)):
                     part=tokens[start:start+size]
-                    chunks.append({'@search.action':'mergeOrUpload','id':f"{layout[:12]}-{d['source_id']}-{size}-{start}",'layout_version':layout,'source_id':d['source_id'],'source_group':d['source_group'],'split':d['split'],'title':d['title'],'content':d['text'][offsets[start][0]:offsets[start+len(part)-1][1]],'chunk_size':size,'token_start':start,'token_end':start+len(part)})
+                    chunks.append({'@search.action':'mergeOrUpload','id':f"{layout[:12]}-{d['source_id']}-{size}-{start}",'layout_version':layout,'source_id':d['source_id'],'source_group':d['source_group'],'split':d['split'],'error_code':d.get('error_code',''),'policy_version':d['version'],'is_current':d.get('is_current',True),'title':d['title'],'content':d['text'][offsets[start][0]:offsets[start+len(part)-1][1]],'chunk_size':size,'token_start':start,'token_end':start+len(part)})
         for field,name in [('mini_vector','sentence-transformers/all-MiniLM-L6-v2'),('bge_vector','BAAI/bge-small-en-v1.5')]:
             vectors=self.encode([x['content'] for x in chunks],name)
             for chunk,vector in zip(chunks,vectors): chunk[field]=vector
@@ -82,10 +83,13 @@ class Azure:
         self.run.raw('index-layout',{'index':index,'chunk_count':len(chunks),'model_revisions':self.c['model_revisions']})
         self.run.state['chunks']=chunks; self.run.save()
         return len(chunks)
-    def query(self,q,*,mode='vector',size=128,depth=10,cutoff=None,weight=1.,field='mini_vector',encoder=None,k=5):
+    def query(self,q,*,mode='vector',size=128,depth=10,cutoff=None,weight=1.,field='mini_vector',encoder=None,k=5,policy_filter=None):
         require(cutoff is None or mode=='vector','Cannot convert or cutoff a hybrid/semantic score.')
         layout=self.run.state.get('index_layout_version'); require(layout,"Prepare this run's versioned index layout first.")
-        body={'select':'id,source_id,content,chunk_size,token_start,token_end,layout_version','filter':f"chunk_size eq {size} and layout_version eq '{layout}'",'top':depth if cutoff is not None else k}
+        policy_filter=policy_filter if policy_filter is not None else getattr(self.run,'spec',{}).get('policy_filter','all')
+        require(policy_filter in ('all','current'),'policy_filter must be all or current.')
+        body={'select':'id,source_id,content,chunk_size,token_start,token_end,layout_version,error_code,policy_version,is_current','filter':f"chunk_size eq {size} and layout_version eq '{layout}'",'top':depth if cutoff is not None else k}
+        if policy_filter=='current': body['filter']+=' and is_current eq true'
         if field=='tuned_vector':
             checkpoint=self.run.state.get('tuned_checkpoint_job'); require(checkpoint,'Selected embedding checkpoint identity is missing.'); body['filter']+=f" and tuned_checkpoint_job eq '{checkpoint}'"
         if mode in ('keyword','hybrid','semantic'): body['search']=q['question']

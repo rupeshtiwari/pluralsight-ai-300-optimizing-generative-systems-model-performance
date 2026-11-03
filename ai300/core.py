@@ -83,6 +83,20 @@ def validate_splits():
     for d in docs:
         group=d['source_group']; require(group not in groups or groups[group]==d['split'],'Source-group leakage.')
         groups[group]=d['split']
+    policy_groups={}
+    for d in docs:
+        if 'error_code' not in d: continue  # Existing single-version policies are current by dataset contract.
+        require(isinstance(d['error_code'],str) and bool(d['error_code']),'Error code must be nonempty text.')
+        require(type(d.get('is_current')) is bool,'Versioned error policies require explicit is_current.')
+        require(isinstance(d.get('version'),str) and d['version'].isdigit(),'Policy version must be a positive integer string.')
+        require(int(d['version'])>0,'Policy version must be positive.')
+        policy_groups.setdefault(d['error_code'],[]).append(d)
+    for code,versions in policy_groups.items():
+        require(len({d['source_group'] for d in versions})==1,'Policy versions must share one source group.')
+        require(len({d['version'] for d in versions})==len(versions),'Duplicate policy version.')
+        current=[d for d in versions if d['is_current']]
+        require(len(current)==1,'Each error policy needs exactly one current version.')
+        require(int(current[0]['version'])==max(int(d['version']) for d in versions),'Current policy must be the newest supplied version.')
     for q in queries:
         require(q['split'] in ('train','validation','test'),'Unknown split.')
         for source in q['relevance']:
@@ -193,6 +207,7 @@ def consumed_config(config,demo):
 
 
 def validate_demo_spec(demo,spec):
+    require(spec.get('policy_filter','all') in ('all','current'),'policy_filter must be all or current.')
     if demo=='m1-demo1':
         require(spec.get('chunk_sizes')==[64,128,192],'The approved comparison requires chunk_sizes [64,128,192].')
         require(isinstance(spec.get('overlap_tokens'),int) and 0<=spec['overlap_tokens']<64,'Overlap must be an integer from 0 to 63 tokens.')

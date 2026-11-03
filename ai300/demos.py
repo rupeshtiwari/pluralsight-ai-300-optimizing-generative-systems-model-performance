@@ -12,10 +12,12 @@ def validation(domain=True): return [q for q in jsonl(ROOT/'data/queries.jsonl')
 def sweep(a,variants,questions=None,encoder=None):
     rows=[]
     for label,settings in variants.items():
+        settings={'policy_filter':getattr(getattr(a,'run',None),'spec',{}).get('policy_filter','all'),**settings}
         for q in questions or validation():
             kept,rejected,elapsed=a.query(q,encoder=encoder,**settings)
             rows.append({'variant':label,'query_id':q['query_id'],'query_type':q['query_type'],'settings':settings,'latency_ms':elapsed,'retained':kept,'rejected':rejected,**retrieval_metrics(kept,q)})
-    return {'rows':rows,'variants':{v:summarize([x for x in rows if x['variant']==v]) for v in variants},'split':'validation','measurement':'live Azure Search responses'}
+    return {'rows':rows,'variants':{v:summarize([x for x in rows if x['variant']==v]) for v in variants},'split':'validation','policy_filter':getattr(getattr(a,'run',None),'spec',{}).get('policy_filter','all'),'measurement':'live Azure Search responses'}
+
 
 def retrieval_chunks(run,n):
     a=Azure(run)
@@ -30,8 +32,9 @@ def retrieval_chunks(run,n):
         require(eligible,'No retrieval variant fits the predeclared latency budget; retain the baseline.')
         winner=max(eligible,key=lambda k:(variants[k]['recall_at_k'],-variants[k]['boundary_failure'],-variants[k]['latency_ms']))
         settings={str(i)+'-'+r['variant']:r['settings'] for i,report in enumerate(reports,1) for r in report['rows']}
-        result={'comparison':variants,'selected_variant':winner,'selected_settings':settings[winner],'latency_budget_ms':run.spec['latency_budget_ms'],'selection_rule':'maximize recall, minimize boundary failures, then latency','limitations':'Eight domain validation queries; not statistical proof of general improvement. Cutoff changes retained evidence, not server retrieval.'}
+        result={'comparison':variants,'selected_variant':winner,'selected_settings':settings[winner],'latency_budget_ms':run.spec['latency_budget_ms'],'selection_rule':'maximize recall, minimize boundary failures, then latency','limitations':f'{len(validation())} domain validation queries; not statistical proof of general improvement. Cutoff changes retained evidence, not server retrieval.'}
     return result
+
 
 def hybrid_search(run,n):
     """Implement Demo: Run hybrid search and semantic reranking in Azure using the numbered learner steps."""
