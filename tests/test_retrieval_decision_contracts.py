@@ -77,6 +77,38 @@ class RetrievalDecisionContractTests(unittest.TestCase):
                 demos.ab_experiment_contract(run)
             self.assertFalse((run.path/'ab-experiment-contract.json').exists())
 
+    def test_ab_uncertainty_counts_actual_retained_questions(self):
+        # Exercise the real report path with completed offline observations.
+        # The subset case prevents substituting the full validation-set size.
+        questions=demos.validation()
+        self.assertEqual(len(questions),10)
+        for session_count,question_count in ((24,10),(6,3)):
+            with self.subTest(sessions=session_count),tempfile.TemporaryDirectory() as temp:
+                run=self.make_run(temp);run.spec['sessions']=session_count;run.attempt.mkdir()
+                experiment=demos.ab_experiment_contract(run)
+                sessions=[]
+                for i in range(session_count):
+                    q=questions[i%question_count]
+                    outcome={'status':'COMPLETED','query_id':q['query_id'],'arm':'A' if i%2==0 else 'B'}
+                    sessions.append({'status':'COMPLETED','query_id':q['query_id'],'outcome':outcome})
+                observed=run.path/'ab-observations.json'
+                core.write(observed,{'experiment_contract_sha256':experiment['sha256'],'sessions':sessions})
+                run.state['ab_observations']={'path':str(observed),'sha256':core.digest(observed)}
+                for name in ('ab-exposures.jsonl','ab-outcomes.jsonl','rag-ab-review.jsonl'):
+                    (run.path/name).write_text('')
+                reviewed={'rows':[row['outcome'] for row in sessions],
+                          'by_variant':{'A':{'manual_answer_support':.5},'B':{'manual_answer_support':.5}}}
+                azure=Mock();azure.track.return_value={}
+                with patch.object(demos,'Azure',return_value=azure),patch.object(demos,'manual_review',return_value=reviewed),patch.object(demos,'summarize',return_value={}):
+                    report=demos.rag_ab(run,3)
+                self.assertIn(f'cover {question_count} distinct questions',report['uncertainty'])
+                self.assertIn('No inferential confidence interval is justified',report['uncertainty'])
+                self.assertEqual(report['decision'],'COLLECT_MORE_EVIDENCE')
+                self.assertEqual(report['assigned_sessions'],session_count)
+                self.assertEqual(report['completed_outcomes'],session_count)
+                azure.query.assert_not_called()
+                azure.generate.assert_not_called()
+
     def test_invalid_experiment_config_fails_before_live_preflight(self):
         valid={'sessions':24,'primary_metric':'manual_answer_support','stop_rule':'fixed_sessions_no_early_efficacy'}
         core.validate_demo_spec('m1-demo3',valid)
