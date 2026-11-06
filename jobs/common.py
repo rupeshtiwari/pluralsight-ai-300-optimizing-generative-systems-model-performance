@@ -18,7 +18,7 @@ def load_base(config):
     return model,tokenizer
 
 def response_features(tokenizer,prompt,answer,max_length=512):
-    prefix=tokenizer.apply_chat_template(prompt,tokenize=True,add_generation_prompt=True,enable_thinking=False)
+    prefix=tokenizer.apply_chat_template(prompt,tokenize=True,add_generation_prompt=True,enable_thinking=False,return_dict=False)
     target=tokenizer.encode(json.dumps(answer)+tokenizer.eos_token,add_special_tokens=False)
     # Never silently train on truncated answers or an all-masked target.
     if len(prefix)+len(target)>max_length: raise ValueError('Training example exceeds the fixed token budget; revise the data.')
